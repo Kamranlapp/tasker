@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hint Template — Design</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  background:#111418;
+  font-family:'Menlo','Monaco','Courier New',monospace;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:40px;
+  padding:60px 40px;
+  flex-wrap:wrap;
+}
+
+/* Fake blurred app content behind the hints */
+.bg-canvas{
+  position:fixed;inset:0;z-index:0;
+  background:
+    radial-gradient(ellipse 60% 40% at 30% 40%, rgba(136,192,208,0.04) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 60% at 70% 60%, rgba(194,24,91,0.03) 0%, transparent 70%),
+    #111418;
+}
+/* Fake tree rows to give context */
+.bg-canvas::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 23px,
+    rgba(255,255,255,0.015) 23px,
+    rgba(255,255,255,0.015) 24px
+  );
+}
+
+.stage{position:relative;z-index:1;display:flex;flex-direction:column;align-items:flex-start;gap:12px;}
+.stage-label{color:#3a4a5a;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding-left:2px;}
+
+/* ── VARIANT A — Current (reference) ─────────── */
+.hint-a{
+  width:264px;
+  background:#1a1f27;
+  border:1px solid #2a3040;
+  border-radius:14px;
+  padding:12px 14px 14px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.55);
+}
+
+/* ── VARIANT B — Glass · Transparent ─────────── */
+.hint-b{
+  width:272px;
+  background:rgba(14,18,26,0.68);
+  backdrop-filter:blur(28px);
+  -webkit-backdrop-filter:blur(28px);
+  border:1px solid rgba(136,192,208,0.13);
+  border-radius:16px;
+  padding:13px 15px 15px;
+  box-shadow:
+    0 2px 40px rgba(0,0,0,0.55),
+    inset 0 1px 0 rgba(255,255,255,0.07);
+}
+
+/* ── VARIANT C — Glass · with top accent line ── */
+.hint-c{
+  width:272px;
+  background:rgba(14,18,26,0.72);
+  backdrop-filter:blur(28px);
+  -webkit-backdrop-filter:blur(28px);
+  /* gradient border via outline trick */
+  border:1px solid transparent;
+  border-radius:16px;
+  padding:13px 15px 15px;
+  box-shadow:
+    0 4px 40px rgba(0,0,0,0.6),
+    0 0 0 1px rgba(136,192,208,0.1),
+    inset 0 1px 0 rgba(255,255,255,0.09);
+  position:relative;
+  overflow:hidden;
+}
+.hint-c::before{
+  content:'';
+  position:absolute;
+  top:0;left:15%;right:15%;
+  height:1px;
+  background:linear-gradient(90deg, transparent, rgba(136,192,208,0.55), transparent);
+}
+
+/* ── Shared header ──────────────────────────── */
+.h-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:11px;
+}
+.h-title{
+  color:#88c0d0;font-size:10px;font-weight:bold;
+  letter-spacing:0.1em;text-transform:uppercase;
+  opacity:0.8;
+}
+.h-title-b{
+  color:#88c0d0;font-size:10px;font-weight:bold;
+  letter-spacing:0.1em;text-transform:uppercase;
+  opacity:0.7;
+  display:flex;align-items:center;gap:5px;
+}
+.h-dot{
+  width:5px;height:5px;border-radius:50%;
+  background:#88c0d0;opacity:0.5;flex-shrink:0;
+}
+.h-close{
+  background:transparent;border:none;
+  color:rgba(255,255,255,0.2);font-size:16px;
+  line-height:1;cursor:pointer;padding:0 2px;
+  transition:color 0.15s;font-family:inherit;
+}
+.h-close:hover{color:rgba(255,255,255,0.55);}
+
+/* divider */
+.h-divider{
+  height:1px;
+  background:rgba(255,255,255,0.05);
+  margin:0 -15px 11px;
+}
+.h-divider-a{
+  height:1px;
+  background:#1e2530;
+  margin:0 -14px 11px;
+}
+
+/* ── Rows ──────────────────────────────────── */
+.h-rows{display:flex;flex-direction:column;gap:9px;}
+.h-row{display:flex;align-items:center;gap:10px;}
+
+.h-demo{
+  display:flex;align-items:center;gap:3px;
+  width:50px;justify-content:center;flex-shrink:0;
+}
+.h-text{color:rgba(205,214,244,0.5);font-size:11px;line-height:1.4;}
+.h-text b{color:rgba(205,214,244,0.85);font-weight:500;}
+
+/* ── Keyboard keys ─────────────────────────── */
+.kbd{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:22px;height:20px;padding:0 5px;
+  background:#111418;
+  border:1px solid rgba(255,255,255,0.12);
+  border-bottom:2px solid rgba(0,0,0,0.6);
+  border-radius:5px;
+  color:#88c0d0;font-size:11px;font-family:inherit;
+}
+/* glass variant keys */
+.kbd-g{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:22px;height:20px;padding:0 5px;
+  background:rgba(136,192,208,0.07);
+  border:1px solid rgba(136,192,208,0.18);
+  border-bottom:2px solid rgba(0,0,0,0.4);
+  border-radius:5px;
+  color:rgba(136,192,208,0.9);font-size:11px;font-family:inherit;
+}
+
+/* ── Expand arrow ──────────────────────────── */
+.ex-arrow{
+  color:#88c0d0;font-size:13px;display:inline-block;
+  animation:ex-rot 3s ease-in-out infinite;
+}
+@keyframes ex-rot{
+  0%,18%  {transform:rotate(0deg);}
+  42%,68% {transform:rotate(90deg);}
+  92%,100%{transform:rotate(0deg);}
+}
+.ex-child{
+  display:inline-block;width:20px;height:3px;
+  background:rgba(136,192,208,0.3);border-radius:2px;margin-left:3px;
+  animation:ex-fade 3s ease-in-out infinite;
+  transform-origin:left center;
+}
+@keyframes ex-fade{
+  0%,18%  {opacity:0;transform:scaleX(0);}
+  42%,68% {opacity:1;transform:scaleX(1);}
+  92%,100%{opacity:0;transform:scaleX(0);}
+}
+
+/* key press anim */
+.kbd-enter{animation:kp 3.2s ease-in-out infinite;}
+.kbd-shift{animation:kp2 4s ease-in-out infinite;}
+.kbd-enter2{animation:kp2 4s ease-in-out infinite 0.18s;}
+@keyframes kp{
+  0%,28%,100%{transform:scale(1) translateY(0);border-bottom-width:2px;}
+  42%,56%    {transform:scale(0.87) translateY(1px);border-bottom-width:1px;}
+}
+@keyframes kp2{
+  0%,32%,100%{transform:scale(1) translateY(0);border-bottom-width:2px;}
+  46%,60%    {transform:scale(0.87) translateY(1px);border-bottom-width:1px;}
+}
+
+/* ── Recall hint ───────────────────────────── */
+.h-recall{
+  margin-top:12px;padding-top:9px;
+  border-top:1px solid rgba(255,255,255,0.04);
+  color:rgba(255,255,255,0.12);font-size:10px;
+  text-align:center;letter-spacing:0.04em;
+}
+</style>
+</head>
+<body>
+
+<div class="bg-canvas"></div>
+
+<!-- ── VARIANT A: Current ────────────────────────────── -->
+<div class="stage">
+  <div class="stage-label">Current</div>
+  <div class="hint-a">
+    <div class="h-header">
+      <span class="h-title">Main panel</span>
+      <button class="h-close">×</button>
+    </div>
+    <div class="h-divider-a"></div>
+    <div class="h-rows">
+      <div class="h-row">
+        <span class="h-demo">
+          <span class="ex-arrow">▶</span>
+          <span class="ex-child"></span>
+        </span>
+        <span class="h-text">Click <b>▶</b> to expand · collapse</span>
+      </div>
+      <div class="h-row">
+        <span class="h-demo"><kbd class="kbd kbd-enter">↵</kbd></span>
+        <span class="h-text"><b>Enter</b> — add entry</span>
+      </div>
+      <div class="h-row">
+        <span class="h-demo">
+          <kbd class="kbd kbd-shift">⇧</kbd>
+          <kbd class="kbd kbd-enter2">↵</kbd>
+        </span>
+        <span class="h-text"><b>Shift+Enter</b> — sub-entry</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── VARIANT B: Glass ──────────────────────────────── -->
+<div class="stage">
+  <div class="stage-label">Glass · no top bar</div>
+  <div class="hint-b">
+    <div class="h-header">
+      <span class="h-title">Main panel</span>
+      <button class="h-close">×</button>
+    </div>
+    <div class="h-divider"></div>
+    <div class="h-rows">
+      <div class="h-row">
+        <span class="h-demo">
+          <span class="ex-arrow" style="color:rgba(136,192,208,0.7)">▶</span>
+          <span class="ex-child" style="background:rgba(136,192,208,0.2)"></span>
+        </span>
+        <span class="h-text">Click <b>▶</b> to expand · collapse</span>
+      </div>
+      <div class="h-row">
+        <span class="h-demo"><kbd class="kbd-g kbd-enter">↵</kbd></span>
+        <span class="h-text"><b>Enter</b> — add entry</span>
+      </div>
+      <div class="h-row">
+        <span class="h-demo">
+          <kbd class="kbd-g kbd-shift">⇧</kbd>
+          <kbd class="kbd-g kbd-enter2">↵</kbd>
+        </span>
+        <span class="h-text"><b>Shift+Enter</b> — sub-entry</span>
+      </div>
+    </div>
+    <div class="h-recall">Recall: Shift ⌘ I</div>
+  </div>
+</div>
+
+<!-- ── VARIANT C: Glass + accent top line ────────────── -->
+<div class="stage">
+  <div class="stage-label">Glass · accent top line</div>
+  <div class="hint-c">
+    <div class="h-header">
+      <span class="h-title-b">
+        <span class="h-dot"></span>
+        Main panel
+      </span>
+      <button class="h-close">×</button>
+    </div>
+    <div class="h-divider"></div>
+    <div class="h-rows">
+      <div class="h-row">
+        <span class="h-demo">
+          <span class="ex-arrow" style="color:rgba(136,192,208,0.75)">▶</span>
+          <span class="ex-child" style="background:rgba(136,192,208,0.2)"></span>
+        </span>
+        <span class="h-text">Click <b>▶</b> to expand · collapse</span>
+      </div>
+      <div class="h-row">
+        <span class="h-demo"><kbd class="kbd-g kbd-enter">↵</kbd></span>
+        <span class="h-text"><b>Enter</b> — add entry</span>
+      </div>
+      <div class="h-row">
+        <span class="h-demo">
+          <kbd class="kbd-g kbd-shift">⇧</kbd>
+          <kbd class="kbd-g kbd-enter2">↵</kbd>
+        </span>
+        <span class="h-text"><b>Shift+Enter</b> — sub-entry</span>
+      </div>
+    </div>
+    <div class="h-recall">Recall: Shift ⌘ I</div>
+  </div>
+</div>
+
+</body>
+</html>
