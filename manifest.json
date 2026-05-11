@@ -1,0 +1,16 @@
+{
+  "name": "Task Tracker",
+  "short_name": "Tasker",
+  "display": "standalone",
+  "start_url": "/",
+  "background_color": "#111418",
+  "theme_color": "#111418",
+  "icons": [
+    {
+      "src": "Icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

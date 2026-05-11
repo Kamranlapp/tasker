@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#111418">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Task Tracker</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="Icon.png">
+<link rel="apple-touch-icon" sizes="1024x1024" href="Icon.png">
+<link rel="apple-touch-icon-precomposed" sizes="1024x1024" href="Icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&family=Poppins:wght@400;500&family=Roboto:wght@400;500&family=Barlow:wght@400;500&family=Raleway:wght@400;500&display=swap&subset=latin,cyrillic" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=168">
+</head>
+<body>
+
+<!-- BACKGROUND LAYERS (crossfade) -->
+<div id="bg-layer-a" class="bg-layer"></div>
+<div id="bg-layer-b" class="bg-layer"></div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div id="login-box">
+    <h1>Task Tracker</h1>
+    <p>Enter your 6-word seed phrase to sign in</p>
+    <div class="word-grid">
+      <div class="word-slot"><span class="word-num">1</span><input class="word-input" data-idx="0" autocomplete="off" spellcheck="false"></div>
+      <div class="word-slot"><span class="word-num">2</span><input class="word-input" data-idx="1" autocomplete="off" spellcheck="false"></div>
+      <div class="word-slot"><span class="word-num">3</span><input class="word-input" data-idx="2" autocomplete="off" spellcheck="false"></div>
+      <div class="word-slot"><span class="word-num">4</span><input class="word-input" data-idx="3" autocomplete="off" spellcheck="false"></div>
+      <div class="word-slot"><span class="word-num">5</span><input class="word-input" data-idx="4" autocomplete="off" spellcheck="false"></div>
+      <div class="word-slot"><span class="word-num">6</span><input class="word-input" data-idx="5" autocomplete="off" spellcheck="false"></div>
+    </div>
+    <button id="login-btn">Sign in</button>
+    <div id="login-error"></div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div id="settings-screen">
+  <div id="settings-header">
+    <button id="settings-back">← Back</button>
+    <span id="settings-title">Settings</span>
+  </div>
+  <div id="settings-body">
+    <div class="settings-col">
+      <div class="settings-col-header">Status</div>
+      <div class="settings-col-body">
+        <div class="status-list" id="status-list"></div>
+      </div>
+    </div>
+    <div class="settings-col">
+      <div class="settings-col-header">Account</div>
+      <div class="settings-col-body">
+        <div class="seed-box">
+          <div class="seed-phrase-display" id="seed-display">—</div>
+          <div class="seed-actions">
+            <button class="seed-btn" id="copy-seed-btn">Copy phrase</button>
+            <button class="seed-btn danger" id="logout-other-btn">Logout other sessions</button>
+          </div>
+        </div>
+        <div id="admin-panel"></div>
+      </div>
+      <div class="logout-wrap">
+        <button id="logout-btn">Log out</button>
+      </div>
+    </div>
+    <div class="settings-col">
+      <div class="settings-col-header">Theme &amp; Notepads</div>
+      <div class="settings-col-body" id="theme-panel"></div>
+      <div class="logout-wrap">
+        <button id="save-exit-btn">Save and Exit</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <div id="mobile-tabs">
+    <button id="mt-tree" class="active">Tree</button>
+    <button id="mt-todo">To-Do</button>
+  </div>
+  <div id="panels">
+    <div id="left-wrap">
+      <div id="editor"><div id="gutter"></div><div id="content"></div></div>
+    </div>
+    <div id="right-col">
+      <div id="notebook-bar">
+        <div class="nb-left"></div>
+        <div class="nb-right"></div>
+      </div>
+      <div id="right-wrap">
+        <div id="todo-title">⚠️ To-Do</div>
+        <div id="todo-content"></div>
+        <div class="bottom-bar">
+          <span class="app-version">v1.8.4</span>
+          <div id="sync-led" title="Sync status"></div>
+          <button id="settings-btn">Settings</button>
+        </div>
+      </div>
+      <div id="search-bar">
+        <input type="text" id="search-input" placeholder="🔍 Search…" autocomplete="off" spellcheck="false">
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/db.js?v=168"></script>
+<script src="js/state.js?v=168"></script>
+<script src="js/sync.js?v=168"></script>
+<script src="js/tree.js?v=168"></script>
+<script src="js/picker.js?v=168"></script>
+<script src="js/settings.js?v=168"></script>
+<script src="js/render.js?v=168"></script>
+<script src="js/hints.js?v=168"></script>
+<script src="js/onboarding.js?v=168"></script>
+<script src="js/app.js?v=168"></script>
+</body>
+</html>
