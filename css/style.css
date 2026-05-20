@@ -353,13 +353,18 @@ html,body{width:100%;height:100%;background-color:var(--c-bg);overflow:hidden;fo
 #app{display:none;flex-direction:column;width:100%;height:100vh;position:relative;z-index:1;}
 #app.open{display:flex;}
 #panels{display:flex;gap:10px;flex:1;padding:10px;min-height:0;overflow:hidden;}
-#left-wrap{flex:2 1 0;min-width:0;background:var(--c-main-bg);backdrop-filter:blur(var(--c-main-blur));-webkit-backdrop-filter:blur(var(--c-main-blur));border-radius:10px;overflow:hidden;display:flex;flex-direction:column;min-height:0;transition:background 0.4s ease;}
+#left-wrap{flex:2 1 0;min-width:0;background:var(--c-main-bg);backdrop-filter:blur(var(--c-main-blur));-webkit-backdrop-filter:blur(var(--c-main-blur));border-radius:10px;overflow:hidden;display:flex;flex-direction:column;min-height:0;transition:background 0.4s ease;position:relative;}
 #right-col{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:10px;min-height:0;}
 #right-wrap{flex:1;background:var(--c-right-bg);backdrop-filter:blur(var(--c-right-blur));-webkit-backdrop-filter:blur(var(--c-right-blur));border:1px solid rgba(255,255,255,0.06);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;min-height:0;position:relative;}
 #search-bar{flex-shrink:0;height:40px;background:#1a1f27;border-radius:10px;border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;padding:0 4px;}
 #search-input{flex:1;background:transparent;border:none;color:#cdd6f4;font-size:13px;padding:0 8px;outline:none;height:28px;caret-color:#88c0d0;font-family:inherit;}
 #search-input::placeholder{color:#4a5570;}
-#editor{display:flex;flex:1;overflow-y:auto;overflow-x:hidden;min-height:0;align-items:flex-start;}
+#editor{display:flex;flex:1;overflow-y:auto;overflow-x:hidden;min-height:0;align-items:flex-start;position:relative;}
+/* Keep last 3 visual lines protected from bottom overlays: 1 fade line + 2 fully hidden lines */
+#editor:not(.notepad-mode)::after{
+  content:'';position:absolute;left:0;right:0;bottom:0;height:66px;pointer-events:none;z-index:12;
+  background:linear-gradient(to bottom,rgba(0,0,0,0) 0%,var(--c-main-bg) 34%,var(--c-main-bg) 100%);
+}
 #gutter{background:transparent;color:#4a5068;font-size:11px;padding:8px 0;min-width:38px;text-align:right;user-select:none;border-right:1px solid rgba(255,255,255,0.05);flex-shrink:0;}
 .gutter-line{padding:0 7px 0 4px;min-height:22px;display:flex;align-items:center;justify-content:flex-end;}
 #content{flex:1;min-width:0;overflow:hidden;padding:8px 0;transition:opacity 0.3s ease;}
