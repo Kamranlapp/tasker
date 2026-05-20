@@ -529,6 +529,17 @@ textarea.row-edit-multi{resize:none;overflow:hidden;line-height:1.4;padding:4px 
   body:not(.mobile-view-tree):not(.mobile-view-todo) #right-col{display:none;}
 
   #left-wrap, #right-col{flex:1 1 auto;min-height:0;}
+  #right-wrap{min-height:0;}
+  #todo-content{min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
+
+  /* Mobile tree fade/no-text zone: same logic as desktop */
+  #editor:not(.notepad-mode){
+    --bottom-safe-zone:calc(66px + env(safe-area-inset-bottom, 0px));
+    --bottom-fade-start:calc(44px + env(safe-area-inset-bottom, 0px));
+    scroll-padding-bottom:calc(66px + env(safe-area-inset-bottom, 0px));
+  }
+  #editor:not(.notepad-mode) #content,
+  #editor:not(.notepad-mode) #gutter{padding-bottom:calc(66px + env(safe-area-inset-bottom, 0px));}
 
   /* iPhone/mobile: stronger always-on bottom no-text zone above browser/search chrome */
   #editor:not(.notepad-mode){
