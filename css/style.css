@@ -554,6 +554,15 @@ textarea.row-edit-multi{resize:none;overflow:hidden;line-height:1.4;padding:4px 
 
   /* ── Tree rows — slightly looser spacing for tapping ── */
   .row{min-height:30px;padding:4px 6px;margin:0 4px;}
+  /* Guaranteed empty tail zone under tree text so dock/browser UI never covers last lines */
+  body.mobile-view-tree #content::after,
+  body:not(.mobile-view-tree):not(.mobile-view-todo) #content::after{
+    content:'';
+    display:block;
+    height:120px;
+    flex-shrink:0;
+    pointer-events:none;
+  }
   .add-btn{width:24px;height:24px;font-size:14px;}
   /* Line numbers hug the left edge */
   #gutter{min-width:22px;font-size:11px;text-align:left;padding-left:2px;}
