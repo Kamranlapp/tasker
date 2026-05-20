@@ -1225,6 +1225,7 @@ function buildTodoPanel() {
   initSearchBar();
   buildRightTabs();
   const el = document.getElementById('todo-content');
+  const prevScrollTop = el.scrollTop;
   el.innerHTML = '';
 
   const weeks = [];
@@ -1350,4 +1351,9 @@ function buildTodoPanel() {
       });
     });
   });
+
+  const shouldRestoreTodoScroll =
+    document.body.classList.contains('mobile-view-todo') ||
+    (window.visualViewport && window.visualViewport.height < window.innerHeight);
+  if (shouldRestoreTodoScroll) el.scrollTop = prevScrollTop;
 }
