@@ -362,13 +362,17 @@ html,body{width:100%;height:100%;background-color:var(--c-bg);overflow:hidden;fo
 #editor{display:flex;flex:1;overflow-y:auto;overflow-x:hidden;min-height:0;align-items:flex-start;}
 /* Bottom readability zone: always active in viewport (1 fade line + 2 no-text lines) */
 #editor:not(.notepad-mode){
-  -webkit-mask-image:linear-gradient(to bottom,#000 0,#000 calc(100% - 66px),rgba(0,0,0,0) calc(100% - 44px),transparent 100%);
+  --bottom-safe-zone:calc(66px + env(safe-area-inset-bottom, 0px));
+  --bottom-fade-start:calc(44px + env(safe-area-inset-bottom, 0px));
+  -webkit-mask-image:linear-gradient(to bottom,#000 0,#000 calc(100% - var(--bottom-safe-zone)),rgba(0,0,0,0) calc(100% - var(--bottom-fade-start)),transparent 100%);
   -webkit-mask-repeat:no-repeat;
   -webkit-mask-size:100% 100%;
-  mask-image:linear-gradient(to bottom,#000 0,#000 calc(100% - 66px),rgba(0,0,0,0) calc(100% - 44px),transparent 100%);
+  mask-image:linear-gradient(to bottom,#000 0,#000 calc(100% - var(--bottom-safe-zone)),rgba(0,0,0,0) calc(100% - var(--bottom-fade-start)),transparent 100%);
   mask-repeat:no-repeat;
   mask-size:100% 100%;
 }
+#editor:not(.notepad-mode) #content,
+#editor:not(.notepad-mode) #gutter{padding-bottom:calc(66px + env(safe-area-inset-bottom, 0px));}
 #gutter{background:transparent;color:#4a5068;font-size:11px;padding:8px 0;min-width:38px;text-align:right;user-select:none;border-right:1px solid rgba(255,255,255,0.05);flex-shrink:0;}
 .gutter-line{padding:0 7px 0 4px;min-height:22px;display:flex;align-items:center;justify-content:flex-end;}
 #content{flex:1;min-width:0;overflow:hidden;padding:8px 0;transition:opacity 0.3s ease;}

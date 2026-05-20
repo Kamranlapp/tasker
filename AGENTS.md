@@ -76,8 +76,8 @@ Saves are debounced by `SAVE_DEBOUNCE` and flushed by `flushSave()` / `startSync
 
 ## Git workflow expectations
 
-- For merge conflict resolution, prefer incoming/new code over old code when conflicts affect the same lines.
-- If conflicts are complex, resolve manually and keep functional behavior from the newer change set.
+- For merge conflict resolution, prefer current/checked-out branch code over incoming code when conflicts affect the same lines.
+- If conflicts are complex, resolve manually and keep current branch behavior unless explicitly overridden during manual review.
 - GitHub is the source of truth for branch state and CI results.
 - Work in the branch explicitly selected for the task; if none is named, default to `test`.
 - Do not create additional branches unless explicitly requested.
