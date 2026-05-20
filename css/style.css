@@ -528,10 +528,10 @@ textarea.row-edit-multi{resize:none;overflow:hidden;line-height:1.4;padding:4px 
   body:not(.mobile-view-tree):not(.mobile-view-todo) #right-col{display:none;}
 
   #left-wrap, #right-col{flex:1 1 auto;min-height:0;}
-  #right-col{display:flex;flex-direction:column;overflow:hidden;height:100%;min-height:0;}
+  #right-col{display:flex;flex-direction:column;overflow:hidden;min-height:0;}
   #right-wrap{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column;}
-  #todo-content{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;}
-  #search-bar{flex:0 0 auto;min-height:44px;margin-top:0;padding-bottom:env(safe-area-inset-bottom, 0px);position:sticky;bottom:0;z-index:5;}
+  #todo-content{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
+  #search-bar{flex:0 0 auto;min-height:44px;margin-top:0;padding-bottom:env(safe-area-inset-bottom, 0px);z-index:5;}
 
   /* Mobile tree fade/no-text zone: same logic as desktop */
   #editor:not(.notepad-mode){
