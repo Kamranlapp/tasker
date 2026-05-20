@@ -354,12 +354,24 @@ html,body{width:100%;height:100%;background-color:var(--c-bg);overflow:hidden;fo
 #app.open{display:flex;}
 #panels{display:flex;gap:10px;flex:1;padding:10px;min-height:0;overflow:hidden;}
 #left-wrap{flex:2 1 0;min-width:0;background:var(--c-main-bg);backdrop-filter:blur(var(--c-main-blur));-webkit-backdrop-filter:blur(var(--c-main-blur));border-radius:10px;overflow:hidden;display:flex;flex-direction:column;min-height:0;transition:background 0.4s ease;}
-#right-col{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:10px;min-height:0;}
-#right-wrap{flex:1;background:var(--c-right-bg);backdrop-filter:blur(var(--c-right-blur));-webkit-backdrop-filter:blur(var(--c-right-blur));border:1px solid rgba(255,255,255,0.06);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;min-height:0;position:relative;}
+#right-col{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:10px;min-height:0;overflow:hidden;}
+#right-wrap{flex:1 1 auto;background:var(--c-right-bg);backdrop-filter:blur(var(--c-right-blur));-webkit-backdrop-filter:blur(var(--c-right-blur));border:1px solid rgba(255,255,255,0.06);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;min-height:0;position:relative;}
 #search-bar{flex-shrink:0;height:40px;background:#1a1f27;border-radius:10px;border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;padding:0 4px;}
 #search-input{flex:1;background:transparent;border:none;color:#cdd6f4;font-size:13px;padding:0 8px;outline:none;height:28px;caret-color:#88c0d0;font-family:inherit;}
 #search-input::placeholder{color:#4a5570;}
 #editor{display:flex;flex:1;overflow-y:auto;overflow-x:hidden;min-height:0;align-items:flex-start;}
+/* Bottom readability zone: always active in viewport (1 fade line + 2 no-text lines) */
+#editor:not(.notepad-mode){
+  --bottom-safe-zone:calc(66px + env(safe-area-inset-bottom, 0px));
+  --bottom-fade-start:calc(44px + env(safe-area-inset-bottom, 0px));
+  -webkit-mask-image:linear-gradient(to bottom,#000 0,#000 calc(100% - var(--bottom-safe-zone)),rgba(0,0,0,0) calc(100% - var(--bottom-fade-start)),transparent 100%);
+  -webkit-mask-repeat:no-repeat;
+  -webkit-mask-size:100% 100%;
+  mask-image:linear-gradient(to bottom,#000 0,#000 calc(100% - var(--bottom-safe-zone)),rgba(0,0,0,0) calc(100% - var(--bottom-fade-start)),transparent 100%);
+  mask-repeat:no-repeat;
+  mask-size:100% 100%;
+}
+#editor:not(.notepad-mode){scroll-padding-bottom:calc(66px + env(safe-area-inset-bottom, 0px));}
 #gutter{background:transparent;color:#4a5068;font-size:11px;padding:8px 0;min-width:38px;text-align:right;user-select:none;border-right:1px solid rgba(255,255,255,0.05);flex-shrink:0;}
 .gutter-line{padding:0 7px 0 4px;min-height:22px;display:flex;align-items:center;justify-content:flex-end;}
 #content{flex:1;min-width:0;overflow:hidden;padding:8px 0;transition:opacity 0.3s ease;}
@@ -421,7 +433,7 @@ textarea.row-edit-multi{resize:none;overflow:hidden;line-height:1.4;padding:4px 
 .view-label.active{color:#cdd6f4;text-shadow:0 0 8px rgba(136,192,208,0.45);}
 
 #todo-title{padding:6px 10px 4px;font-size:var(--fs-week);color:#febc2e;font-weight:bold;flex-shrink:0;user-select:none;}
-#todo-content{flex:1;overflow-y:auto;overflow-x:hidden;min-width:0;display:flex;flex-direction:column;}
+#todo-content{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;min-width:0;min-height:0;display:flex;flex-direction:column;}
 #editor.notepad-mode #gutter{display:none;}
 #editor.notepad-mode #content{padding:0;display:flex;flex-direction:column;}
 .notepad-wrapper{flex:1;margin:12px;background:var(--c-notepad-bg);border-radius:12px;display:flex;flex-direction:column;overflow:hidden;min-height:0;}
@@ -475,6 +487,7 @@ textarea.row-edit-multi{resize:none;overflow:hidden;line-height:1.4;padding:4px 
 
 /* ── MOBILE LAYOUT ────────────────────────────────────────────── */
 @media (max-width: 768px) {
+  #app{height:100dvh;min-height:100dvh;}
   /* avoid iOS zoom on focused inputs (need ≥16px) */
   html, body { -webkit-text-size-adjust: 100%; }
 
@@ -515,6 +528,17 @@ textarea.row-edit-multi{resize:none;overflow:hidden;line-height:1.4;padding:4px 
   body:not(.mobile-view-tree):not(.mobile-view-todo) #right-col{display:none;}
 
   #left-wrap, #right-col{flex:1 1 auto;min-height:0;}
+  #right-col{display:flex;flex-direction:column;overflow:hidden;height:100%;min-height:0;}
+  #right-wrap{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column;}
+  #todo-content{flex:1 1 auto;min-height:0;height:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;}
+  #search-bar{flex:0 0 auto;min-height:44px;margin-top:0;padding-bottom:env(safe-area-inset-bottom, 0px);position:sticky;bottom:0;z-index:5;}
+
+  /* Mobile tree fade/no-text zone: same logic as desktop */
+  #editor:not(.notepad-mode){
+    --bottom-safe-zone:calc(66px + env(safe-area-inset-bottom, 0px));
+    --bottom-fade-start:calc(44px + env(safe-area-inset-bottom, 0px));
+    scroll-padding-bottom:calc(66px + env(safe-area-inset-bottom, 0px));
+  }
 
   /* ── Search bar — bigger touch target, no iOS zoom ── */
   #search-bar{height:44px;padding:0 6px;}
