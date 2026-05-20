@@ -9,7 +9,7 @@ Repository guide for Codex-style agents. Use this file as the quick map before o
 - Deployment: cPanel Git Version Control deploys the checked-in files directly. Keep `.cpanel.yml` as the no-op `/bin/true` stub.
 - Database: Supabase REST is called directly from the browser. Schema changes live in `migration.sql` and are pasted manually into the Supabase SQL editor.
 - Authentication: users sign in with a 6-word seed phrase looked up in the `users` table; the app does not use Supabase Auth sessions.
-- Current visible app version is in `index.html` as `.app-version` (`v1.8.3`). If behavior changes visibly, update cache-busting query strings and version consistently.
+- Current visible app version is in `index.html` as `.app-version` (`v1.9.3`). If behavior changes visibly, update cache-busting query strings and version consistently.
 
 ## File map
 
@@ -72,6 +72,18 @@ Saves are debounced by `SAVE_DEBOUNCE` and flushed by `flushSave()` / `startSync
 - To-do panel rendering and search live in `js/render.js` near `applySearchCollapse()`, `initSearchBar()`, and `buildTodoPanel()`.
 - Settings UI is built imperatively in `js/settings.js`; admin controls are shown only for `currentUser.role === 'admin'`.
 - Onboarding hints are split between data (`js/hints.js`) and UI logic (`js/onboarding.js`).
+
+
+## Git workflow expectations
+
+- For merge conflict resolution, prefer current/checked-out branch code over incoming code when conflicts affect the same lines.
+- If conflicts are complex, resolve manually and keep current branch behavior unless explicitly overridden during manual review.
+- GitHub is the source of truth for branch state and CI results.
+- Work in the branch explicitly selected for the task; if none is named, default to `test`.
+- Do not create additional branches unless explicitly requested.
+- Do not open pull requests unless explicitly requested.
+- Push completed changes to the selected working branch; never target `main` unless separately and explicitly requested.
+- Do not deploy manually; deployment to test should run via GitHub Actions after push to `test`.
 
 ## Conventions to preserve
 
