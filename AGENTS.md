@@ -9,7 +9,7 @@ Repository guide for Codex-style agents. Use this file as the quick map before o
 - Deployment: cPanel Git Version Control deploys the checked-in files directly. Keep `.cpanel.yml` as the no-op `/bin/true` stub.
 - Database: Supabase REST is called directly from the browser. Schema changes live in `migration.sql` and are pasted manually into the Supabase SQL editor.
 - Authentication: users sign in with a 6-word seed phrase looked up in the `users` table; the app does not use Supabase Auth sessions.
-- Current visible app version is in `index.html` as `.app-version` (`v1.8.8`). If behavior changes visibly, update cache-busting query strings and version consistently.
+- Current visible app version is in `index.html` as `.app-version` (`v1.8.9`). If behavior changes visibly, update cache-busting query strings and version consistently.
 
 ## File map
 
@@ -76,6 +76,8 @@ Saves are debounced by `SAVE_DEBOUNCE` and flushed by `flushSave()` / `startSync
 
 ## Git workflow expectations
 
+- For merge conflict resolution, prefer incoming/new code over old code when conflicts affect the same lines.
+- If conflicts are complex, resolve manually and keep functional behavior from the newer change set.
 - GitHub is the source of truth for branch state and CI results.
 - Work in the branch explicitly selected for the task; if none is named, default to `test`.
 - Do not create additional branches unless explicitly requested.
