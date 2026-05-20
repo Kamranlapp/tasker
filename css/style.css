@@ -531,6 +531,19 @@ textarea.row-edit-multi{resize:none;overflow:hidden;line-height:1.4;padding:4px 
   #right-col{display:flex;flex-direction:column;overflow:hidden;min-height:0;}
   #right-wrap{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column;}
   #todo-content{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
+  /* ── Mobile To-Do: iOS scroll-chain hardening ── */
+  body.mobile-view-todo{overflow-y:auto;}
+  body.mobile-view-todo #app{height:100dvh;min-height:100dvh;overflow-y:auto;overscroll-behavior-y:contain;}
+  body.mobile-view-todo #panels{height:100%;min-height:0;}
+  body.mobile-view-todo #right-col{height:100%;min-height:0;overflow:visible;}
+  body.mobile-view-todo #right-wrap{flex:1 1 auto;height:100%;min-height:0;overflow:visible;display:flex;flex-direction:column;}
+  body.mobile-view-todo #todo-content{
+    flex:1 1 auto;min-height:0;height:auto;
+    overflow-y:auto;overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior-y:contain;
+    touch-action:pan-y;
+  }
   #search-bar{flex:0 0 auto;min-height:44px;margin-top:0;padding-bottom:env(safe-area-inset-bottom, 0px);z-index:5;}
 
   /* Mobile tree fade/no-text zone: same logic as desktop */
