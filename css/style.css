@@ -528,10 +528,10 @@ textarea.row-edit-multi{resize:none;overflow:hidden;line-height:1.4;padding:4px 
   body:not(.mobile-view-tree):not(.mobile-view-todo) #right-col{display:none;}
 
   #left-wrap, #right-col{flex:1 1 auto;min-height:0;}
-  #right-col{overflow:hidden;height:100%;}
-  #right-wrap{flex:1 1 auto;min-height:0;overflow:hidden;}
-  #todo-content{flex:1 1 auto;min-height:0;overflow-y:scroll;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;}
-  #search-bar{flex:0 0 auto;margin-top:0;padding-bottom:env(safe-area-inset-bottom, 0px);}
+  #right-col{display:flex;flex-direction:column;overflow:hidden;height:100%;min-height:0;}
+  #right-wrap{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column;}
+  #todo-content{flex:1 1 auto;min-height:0;height:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;}
+  #search-bar{flex:0 0 auto;min-height:44px;margin-top:0;padding-bottom:env(safe-area-inset-bottom, 0px);position:sticky;bottom:0;z-index:5;}
 
   /* Mobile tree fade/no-text zone: same logic as desktop */
   #editor:not(.notepad-mode){
@@ -539,8 +539,6 @@ textarea.row-edit-multi{resize:none;overflow:hidden;line-height:1.4;padding:4px 
     --bottom-fade-start:calc(44px + env(safe-area-inset-bottom, 0px));
     scroll-padding-bottom:calc(66px + env(safe-area-inset-bottom, 0px));
   }
-  #editor:not(.notepad-mode) #content,
-  #editor:not(.notepad-mode) #gutter{padding-bottom:calc(66px + env(safe-area-inset-bottom, 0px));}
 
   /* ── Search bar — bigger touch target, no iOS zoom ── */
   #search-bar{height:44px;padding:0 6px;}
