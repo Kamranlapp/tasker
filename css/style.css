@@ -371,8 +371,6 @@ html,body{width:100%;height:100%;background-color:var(--c-bg);overflow:hidden;fo
   mask-repeat:no-repeat;
   mask-size:100% 100%;
 }
-#editor:not(.notepad-mode) #content,
-#editor:not(.notepad-mode) #gutter{padding-bottom:calc(66px + env(safe-area-inset-bottom, 0px));}
 #editor:not(.notepad-mode){scroll-padding-bottom:calc(66px + env(safe-area-inset-bottom, 0px));}
 #gutter{background:transparent;color:#4a5068;font-size:11px;padding:8px 0;min-width:38px;text-align:right;user-select:none;border-right:1px solid rgba(255,255,255,0.05);flex-shrink:0;}
 .gutter-line{padding:0 7px 0 4px;min-height:22px;display:flex;align-items:center;justify-content:flex-end;}
@@ -530,9 +528,9 @@ textarea.row-edit-multi{resize:none;overflow:hidden;line-height:1.4;padding:4px 
   body:not(.mobile-view-tree):not(.mobile-view-todo) #right-col{display:none;}
 
   #left-wrap, #right-col{flex:1 1 auto;min-height:0;}
-  #right-col{overflow:hidden;}
-  #right-wrap{flex:1 1 auto;min-height:0;}
-  #todo-content{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
+  #right-col{overflow:hidden;height:100%;}
+  #right-wrap{flex:1 1 auto;min-height:0;overflow:hidden;}
+  #todo-content{flex:1 1 auto;min-height:0;overflow-y:scroll;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;}
   #search-bar{flex:0 0 auto;margin-top:0;padding-bottom:env(safe-area-inset-bottom, 0px);}
 
   /* Mobile tree fade/no-text zone: same logic as desktop */
