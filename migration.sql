@@ -222,6 +222,8 @@ ALTER TABLE ui_state ADD COLUMN IF NOT EXISTS active_notepad text DEFAULT NULL;
 -- 6. Trees table: add 'notepad_key' so each notepad can have its own tree
 --    The default/original tree has notepad_key = NULL
 ALTER TABLE trees ADD COLUMN IF NOT EXISTS notepad_key text DEFAULT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS trees_user_main_key ON trees (user_id) WHERE notepad_key IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS trees_user_notepad_key ON trees (user_id, notepad_key) WHERE notepad_key IS NOT NULL;
 
 -- 7. Drop the old unique constraint on trees (user_id only) and create a new one
 --    that includes notepad_key, so each user can have multiple trees

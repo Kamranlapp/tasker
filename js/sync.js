@@ -2,7 +2,7 @@
 async function saveTree() {
   // Always save the main nodes (not the currently active notebook)
   const mainToSave = activeNotepad === null ? nodes : mainNodes;
-  await sb.patch('trees', `?user_id=eq.${currentUser.id}`, { nodes: mainToSave, updated_at: new Date().toISOString() });
+  await sb.patch('trees', `?user_id=eq.${currentUser.id}&notepad_key=is.null`, { nodes: mainToSave, updated_at: new Date().toISOString() });
 }
 
 async function saveUIState() {
@@ -167,7 +167,7 @@ async function registerSession() {
 // ── Load ───────────────────────────────────────────────────────
 async function loadUserData() {
   // Tree (main notebook)
-  const trees = await sb.get('trees', `?user_id=eq.${currentUser.id}&select=nodes`);
+  const trees = await sb.get('trees', `?user_id=eq.${currentUser.id}&notepad_key=is.null&select=nodes`);
   if (trees.length) {
     nodes = trees[0].nodes?.length ? trees[0].nodes : [];
     nextId = nodes.length ? Math.max(...nodes.map(n => n.id)) + 1 : 1;
