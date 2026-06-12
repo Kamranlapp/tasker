@@ -580,7 +580,13 @@ function renderEditInput(el, node, ni) {
       pushUndo();
       if (t) { node.text = t; } else if (nodes.length > 1) { nodes.splice(ni, 1); andCreateSibling = false; }
     } else {
-      if (t) { pushUndo(); node.text = t; } else if (nodes.length > 1) nodes.splice(ni, 1);
+      if (t) {
+        pushUndo();
+        node.text = t;
+      } else if (nodes.length > 1) {
+        pushUndo();
+        nodes.splice(ni, 1);
+      }
     }
     editingNodeId = null; focusedNodeId = node.id;
     if (andCreateSibling) {
@@ -606,8 +612,15 @@ function renderEditInput(el, node, ni) {
       e.preventDefault();
       commit();
     } else if (e.key === 'Escape') {
-      if (!node.text && nodes.length > 1) nodes.splice(ni, 1);
-      editingNodeId = null; render(); e.preventDefault();
+      let removedEmpty = false;
+      if (!node.text && nodes.length > 1) {
+        pushUndo();
+        nodes.splice(ni, 1);
+        removedEmpty = true;
+      }
+      editingNodeId = null;
+      if (removedEmpty) markDirtyTree();
+      render(); e.preventDefault();
     }
   });
 
