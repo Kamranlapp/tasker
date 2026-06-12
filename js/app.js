@@ -77,9 +77,14 @@ async function loadAppUserFromGoogle(authUser) {
     return false;
   }
   if (!user.auth_user_id) {
-    await sb.patch('users', `?id=eq.${user.id}`, { auth_user_id: authUser.id, email });
-    user.auth_user_id = authUser.id;
-    user.email = email;
+    const linked = await sb.query('rpc/tasker_link_google_user', 'POST', { target_user_id: user.id });
+    if (!linked.length) {
+      await supabaseAuth.auth.signOut();
+      showLoginError('This Google login could not be linked to the app account.');
+      return false;
+    }
+    currentUser = linked[0];
+    return true;
   }
   currentUser = user;
   return true;

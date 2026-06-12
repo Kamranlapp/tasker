@@ -14,15 +14,26 @@ const supabaseAuth = supabaseGlobal
   : null;
 window.taskerSupabaseAuthReady = !!supabaseAuth;
 
+async function authHeaders() {
+  const headers = {
+    'apikey': SUPABASE_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_KEY,
+    'Content-Type': 'application/json'
+  };
+  if (!supabaseAuth) return headers;
+  const { data } = await supabaseAuth.auth.getSession();
+  const token = data?.session?.access_token;
+  if (token) headers.Authorization = 'Bearer ' + token;
+  return headers;
+}
+
 const sb = {
   async query(table, method = 'GET', body = null, params = '') {
     const url = `${SUPABASE_URL}/rest/v1/${table}${params}`;
     const opts = {
       method,
       headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_KEY,
-        'Content-Type': 'application/json',
+        ...(await authHeaders()),
         'Prefer': 'return=representation'
       }
     };
@@ -44,9 +55,7 @@ const sb = {
     const r = await fetch(url, {
       method: 'POST',
       headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_KEY,
-        'Content-Type': 'application/json',
+        ...(await authHeaders()),
         'Prefer': 'resolution=merge-duplicates,return=representation'
       },
       body: JSON.stringify(body)
