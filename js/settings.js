@@ -619,24 +619,34 @@ async function createNewUser() {
     return;
   }
   const name = prompt('Display name:', email.split('@')[0])?.trim() || email;
+  let uid = null;
   try {
-    await sb.post('users', { email, display_name: name, role: 'user' });
-    const newUsers = await sb.get('users', `?email=eq.${encodeURIComponent(email)}&select=id`);
-    if (newUsers.length) {
-      const uid = newUsers[0].id;
-      const defaultStatuses = [
-        { key: 'todo', label: 'To-do', icon: '⚠️' },
-        { key: 'done', label: 'Done', icon: '✅' },
-        { key: 'info', label: 'Info', icon: 'ℹ️' }
-      ];
-      await sb.post('settings', { user_id: uid, statuses: defaultStatuses, theme: {}, notepads: [] });
-      await sb.post('ui_state', { user_id: uid, collapsed_nodes: {}, collapsed_groups: {}, todo_collapsed: {} });
-      await sb.post('trees', { user_id: uid, nodes: [], updated_at: new Date().toISOString() });
-    }
+    const created = await sb.post('users', { email, display_name: name, role: 'user' });
+    uid = created[0]?.id;
+    if (!uid) throw new Error('User was created without a returned id.');
+    const defaultStatuses = [
+      { key: 'todo', label: 'To-do', icon: '⚠️' },
+      { key: 'done', label: 'Done', icon: '✅' },
+      { key: 'info', label: 'Info', icon: 'ℹ️' }
+    ];
+    await sb.post('settings', { user_id: uid, statuses: defaultStatuses, theme: {}, notepads: [] });
+    await sb.post('ui_state', { user_id: uid, collapsed_nodes: {}, collapsed_groups: {}, todo_collapsed: {} });
+    await sb.post('trees', { user_id: uid, nodes: [], updated_at: new Date().toISOString() });
     newUserEmail = email;
     allUsers = await sb.get('users', '?select=id,display_name,email,role,auth_user_id&order=display_name');
     renderAdminPanel();
   } catch (e) {
     console.error('Failed to create user:', e);
+    if (uid) {
+      try {
+        await sb.query('trees', 'DELETE', null, `?user_id=eq.${uid}`);
+        await sb.query('ui_state', 'DELETE', null, `?user_id=eq.${uid}`);
+        await sb.query('settings', 'DELETE', null, `?user_id=eq.${uid}`);
+        await sb.query('users', 'DELETE', null, `?id=eq.${uid}`);
+      } catch (cleanupError) {
+        console.error('Failed to roll back user creation:', cleanupError);
+      }
+    }
+    alert('Failed to create user. No partial account was kept.');
   }
 }
