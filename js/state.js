@@ -62,6 +62,7 @@ let dirtyTree = false;
 let dirtyUI = false;
 let dirtySettings = false;
 let syncTimer = null;
+let weekCheckTimer = null;
 let isSaving = false;
 let todoCollapsed = {};
 let theme = { ...THEME_DEFAULTS };

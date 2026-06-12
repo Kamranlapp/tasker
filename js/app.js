@@ -101,6 +101,7 @@ function showApp() {
 function showLogin() {
   currentUser = null;
   if (syncTimer) { clearInterval(syncTimer); syncTimer = null; }
+  if (weekCheckTimer) { clearInterval(weekCheckTimer); weekCheckTimer = null; }
   document.getElementById('app').classList.remove('open');
   document.getElementById('settings-screen').classList.remove('open');
   document.getElementById('login-screen').style.display = 'flex';

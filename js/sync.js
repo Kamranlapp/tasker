@@ -223,7 +223,8 @@ async function loadUserData() {
   startSyncLoop();
   setSyncLed('connected');
   checkAndCreateCurrentWeek();
-  setInterval(() => {
+  if (weekCheckTimer) clearInterval(weekCheckTimer);
+  weekCheckTimer = setInterval(() => {
     const now = getCETDate();
     if (now.getDay() === 1 && now.getHours() === 1) checkAndCreateCurrentWeek();
   }, 60 * 60 * 1000);
