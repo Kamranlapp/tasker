@@ -1,7 +1,7 @@
 // ── Settings UI ────────────────────────────────────────────────
 let editingNotepadKey = null;
 let allUsers = null;
-let newUserSeed = null;
+let newUserEmail = null;
 
 function openSettings() {
   document.getElementById('settings-screen').classList.add('open');
@@ -15,7 +15,7 @@ function closeSettings() {
 }
 
 function renderSettings() {
-  document.getElementById('seed-display').textContent = currentUser.seed_phrase;
+  document.getElementById('seed-display').textContent = currentUser.email || currentUser.display_name || 'Google account';
   renderStatusList();
   renderThemePanel();
   renderAdminPanel();
@@ -516,7 +516,7 @@ function renderAdminPanel() {
     loadBtn.textContent = 'Load users';
     loadBtn.addEventListener('click', async () => {
       try {
-        allUsers = await sb.get('users', '?select=id,display_name,role,seed_phrase&order=display_name');
+        allUsers = await sb.get('users', '?select=id,display_name,email,role,auth_user_id&order=display_name');
         renderAdminPanel();
       } catch (e) { console.error('Failed to load users:', e); }
     });
@@ -528,7 +528,8 @@ function renderAdminPanel() {
 
       const name = document.createElement('span');
       name.className = 'admin-user-name';
-      name.textContent = (u.display_name || 'unnamed') + (u.id === currentUser.id ? ' (you)' : '');
+      name.textContent = (u.display_name || u.email || 'unnamed') + (u.id === currentUser.id ? ' (you)' : '');
+      if (u.email && u.display_name) name.title = u.email;
       row.appendChild(name);
 
       const sel = document.createElement('select');
@@ -550,9 +551,9 @@ function renderAdminPanel() {
       const copyBtn = document.createElement('button');
       copyBtn.className = 'admin-icon-btn';
       copyBtn.textContent = '📋';
-      copyBtn.title = 'Copy seed phrase';
+      copyBtn.title = 'Copy email';
       copyBtn.addEventListener('click', () => {
-        navigator.clipboard.writeText(u.seed_phrase || '');
+        navigator.clipboard.writeText(u.email || '');
         copyBtn.textContent = '✓';
         setTimeout(() => copyBtn.textContent = '📋', 1500);
       });
@@ -576,18 +577,18 @@ function renderAdminPanel() {
     createBtn.addEventListener('click', createNewUser);
     sec.appendChild(createBtn);
 
-    if (newUserSeed) {
+    if (newUserEmail) {
       const res = document.createElement('div');
       res.className = 'admin-seed-result';
-      res.innerHTML = `New user created!<br>Seed: <strong>${newUserSeed}</strong>`;
+      res.innerHTML = `New user created!<br>Email: <strong>${newUserEmail}</strong>`;
       const copyBtn = document.createElement('button');
       copyBtn.className = 'seed-btn';
       copyBtn.style.marginTop = '6px';
-      copyBtn.textContent = 'Copy seed';
+      copyBtn.textContent = 'Copy email';
       copyBtn.addEventListener('click', () => {
-        navigator.clipboard.writeText(newUserSeed);
+        navigator.clipboard.writeText(newUserEmail);
         copyBtn.textContent = 'Copied!';
-        setTimeout(() => copyBtn.textContent = 'Copy seed', 1500);
+        setTimeout(() => copyBtn.textContent = 'Copy email', 1500);
       });
       res.appendChild(document.createElement('br'));
       res.appendChild(copyBtn);
@@ -611,19 +612,16 @@ async function deleteUser(u) {
 }
 
 async function createNewUser() {
-  const wordList = [
-    'alpha','bravo','charlie','delta','echo','foxtrot','golf','hotel','india','juliet',
-    'kilo','lima','mike','november','oscar','papa','quebec','romeo','sierra','tango',
-    'uniform','victor','whiskey','xray','yankee','zulu','anchor','breeze','coral','drift',
-    'ember','frost','grove','haven','ivory','jade','karma','lunar','maple','nexus',
-    'oasis','pearl','quest','ridge','solar','terra','unity','vivid','wren','zenith'
-  ];
-  const pick = () => wordList[Math.floor(Math.random() * wordList.length)];
-  const seed = [pick(), pick(), pick(), pick(), pick(), pick()].join(' ');
-  const name = 'User ' + Math.floor(Math.random() * 9000 + 1000);
+  const email = prompt('Google email for the new user:')?.trim().toLowerCase();
+  if (!email) return;
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    alert('Please enter a valid email address.');
+    return;
+  }
+  const name = prompt('Display name:', email.split('@')[0])?.trim() || email;
   try {
-    await sb.post('users', { seed_phrase: seed, display_name: name, role: 'user' });
-    const newUsers = await sb.get('users', `?seed_phrase=eq.${encodeURIComponent(seed)}&select=id`);
+    await sb.post('users', { email, display_name: name, role: 'user' });
+    const newUsers = await sb.get('users', `?email=eq.${encodeURIComponent(email)}&select=id`);
     if (newUsers.length) {
       const uid = newUsers[0].id;
       const defaultStatuses = [
@@ -635,8 +633,8 @@ async function createNewUser() {
       await sb.post('ui_state', { user_id: uid, collapsed_nodes: {}, collapsed_groups: {}, todo_collapsed: {} });
       await sb.post('trees', { user_id: uid, nodes: [], updated_at: new Date().toISOString() });
     }
-    newUserSeed = seed;
-    allUsers = await sb.get('users', '?select=id,display_name,role,seed_phrase&order=display_name');
+    newUserEmail = email;
+    allUsers = await sb.get('users', '?select=id,display_name,email,role,auth_user_id&order=display_name');
     renderAdminPanel();
   } catch (e) {
     console.error('Failed to create user:', e);

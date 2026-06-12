@@ -1,5 +1,5 @@
 -- ══════════════════════════════════════════════════════════════
--- Migration: Add theme, admin role, notepads support
+-- Migration: Add theme, admin role, notepads support, Google login mapping
 -- Run this in Supabase SQL Editor (Dashboard → SQL Editor → New Query)
 -- ══════════════════════════════════════════════════════════════
 
@@ -8,6 +8,24 @@ ALTER TABLE settings ADD COLUMN IF NOT EXISTS theme jsonb DEFAULT '{}'::jsonb;
 
 -- 2. Add 'role' column to users ('admin' or 'user')
 ALTER TABLE users ADD COLUMN IF NOT EXISTS role text DEFAULT 'user';
+
+-- 2b. Google login mapping.
+-- Existing app data stays linked to users.id. Google Auth only proves the email,
+-- then the browser loads the matching row from public.users.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email text;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_user_id uuid;
+ALTER TABLE users ALTER COLUMN seed_phrase DROP NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS users_email_lower_key ON users (lower(email)) WHERE email IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS users_auth_user_id_key ON users (auth_user_id) WHERE auth_user_id IS NOT NULL;
+
+-- One-time manual account mapping for the two existing users:
+--
+--   SELECT id, display_name, seed_phrase, email FROM users;
+--
+UPDATE users SET email = 'kamran.lapp@gmail.com' WHERE id = 'c68df295-695a-4792-b2bf-90ed9854f8e6';
+UPDATE users SET email = 'riosdanelia10@gmail.com' WHERE id = 'a0edaf89-f8d7-4f8c-ac8a-fdcc77f42614';
+--
+-- Leave auth_user_id NULL; the app fills it on the first successful Google login.
 
 -- 3. Set your account as admin (replace YOUR_USER_ID with your actual user id)
 -- You can find your id by running: SELECT id, display_name FROM users;
@@ -41,7 +59,7 @@ ALTER TABLE trees ADD COLUMN IF NOT EXISTS notepad_key text DEFAULT NULL;
 -- IMPORTANT: After running the ALTER TABLEs above, you need to
 -- find your user ID and set yourself as admin. Run:
 --
---   SELECT id, display_name, seed_phrase FROM users;
+--   SELECT id, display_name, email, seed_phrase FROM users;
 --
 -- Then:
 --

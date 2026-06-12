@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&family=Poppins:wght@400;500&family=Roboto:wght@400;500&family=Barlow:wght@400;500&family=Raleway:wght@400;500&display=swap&subset=latin,cyrillic" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=180">
+<link rel="stylesheet" href="css/style.css?v=182">
 </head>
 <body>
 
@@ -26,16 +26,8 @@
 <div id="login-screen">
   <div id="login-box">
     <h1>Task Tracker</h1>
-    <p>Enter your 6-word seed phrase to sign in</p>
-    <div class="word-grid">
-      <div class="word-slot"><span class="word-num">1</span><input class="word-input" data-idx="0" autocomplete="off" spellcheck="false"></div>
-      <div class="word-slot"><span class="word-num">2</span><input class="word-input" data-idx="1" autocomplete="off" spellcheck="false"></div>
-      <div class="word-slot"><span class="word-num">3</span><input class="word-input" data-idx="2" autocomplete="off" spellcheck="false"></div>
-      <div class="word-slot"><span class="word-num">4</span><input class="word-input" data-idx="3" autocomplete="off" spellcheck="false"></div>
-      <div class="word-slot"><span class="word-num">5</span><input class="word-input" data-idx="4" autocomplete="off" spellcheck="false"></div>
-      <div class="word-slot"><span class="word-num">6</span><input class="word-input" data-idx="5" autocomplete="off" spellcheck="false"></div>
-    </div>
-    <button id="login-btn">Sign in</button>
+    <p>Sign in with your linked Google account</p>
+    <button id="login-btn" class="google-login-btn"><span class="google-mark">G</span>Continue with Google</button>
     <div id="login-error"></div>
   </div>
 </div>
@@ -59,7 +51,7 @@
         <div class="seed-box">
           <div class="seed-phrase-display" id="seed-display">—</div>
           <div class="seed-actions">
-            <button class="seed-btn" id="copy-seed-btn">Copy phrase</button>
+            <button class="seed-btn" id="copy-seed-btn">Copy email</button>
             <button class="seed-btn danger" id="logout-other-btn">Logout other sessions</button>
           </div>
         </div>
@@ -98,7 +90,7 @@
         <div id="todo-title">⚠️ To-Do</div>
         <div id="todo-content"></div>
         <div class="bottom-bar">
-          <span class="app-version">v1.9.6</span>
+          <span class="app-version">v1.9.7</span>
           <div id="sync-led" title="Sync status"></div>
           <button id="settings-btn">Settings</button>
         </div>
@@ -110,15 +102,17 @@
   </div>
 </div>
 
-<script src="js/db.js?v=180"></script>
-<script src="js/state.js?v=180"></script>
-<script src="js/sync.js?v=180"></script>
-<script src="js/tree.js?v=180"></script>
-<script src="js/picker.js?v=180"></script>
-<script src="js/settings.js?v=180"></script>
-<script src="js/render.js?v=180"></script>
-<script src="js/hints.js?v=180"></script>
-<script src="js/onboarding.js?v=180"></script>
-<script src="js/app.js?v=180"></script>
+<script src="js/vendor/supabase.js?v=182"></script>
+<script src="js/vendor/supabase-global.js?v=182"></script>
+<script src="js/db.js?v=182"></script>
+<script src="js/state.js?v=182"></script>
+<script src="js/sync.js?v=182"></script>
+<script src="js/tree.js?v=182"></script>
+<script src="js/picker.js?v=182"></script>
+<script src="js/settings.js?v=182"></script>
+<script src="js/render.js?v=182"></script>
+<script src="js/hints.js?v=182"></script>
+<script src="js/onboarding.js?v=182"></script>
+<script src="js/app.js?v=182"></script>
 </body>
 </html>
