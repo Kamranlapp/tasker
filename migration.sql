@@ -18,12 +18,13 @@ ALTER TABLE users ALTER COLUMN seed_phrase DROP NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS users_email_lower_key ON users (lower(email)) WHERE email IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS users_auth_user_id_key ON users (auth_user_id) WHERE auth_user_id IS NOT NULL;
 
--- One-time manual account mapping for the two existing users:
+-- One-time manual account mapping for the two existing users.
+-- Already run once; keep these as reference only:
 --
 --   SELECT id, display_name, seed_phrase, email FROM users;
 --
-UPDATE users SET email = 'kamran.lapp@gmail.com' WHERE id = 'c68df295-695a-4792-b2bf-90ed9854f8e6';
-UPDATE users SET email = 'riosdanelia10@gmail.com' WHERE id = 'a0edaf89-f8d7-4f8c-ac8a-fdcc77f42614';
+-- UPDATE users SET email = 'kamran.lapp@gmail.com' WHERE id = 'c68df295-695a-4792-b2bf-90ed9854f8e6';
+-- UPDATE users SET email = 'riosdanelia10@gmail.com' WHERE id = 'a0edaf89-f8d7-4f8c-ac8a-fdcc77f42614';
 --
 -- Leave auth_user_id NULL; the app fills it on the first successful Google login.
 
