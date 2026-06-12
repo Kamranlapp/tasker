@@ -580,7 +580,12 @@ function renderAdminPanel() {
     if (newUserEmail) {
       const res = document.createElement('div');
       res.className = 'admin-seed-result';
-      res.innerHTML = `New user created!<br>Email: <strong>${newUserEmail}</strong>`;
+      res.appendChild(document.createTextNode('New user created!'));
+      res.appendChild(document.createElement('br'));
+      res.appendChild(document.createTextNode('Email: '));
+      const emailStrong = document.createElement('strong');
+      emailStrong.textContent = newUserEmail;
+      res.appendChild(emailStrong);
       const copyBtn = document.createElement('button');
       copyBtn.className = 'seed-btn';
       copyBtn.style.marginTop = '6px';
