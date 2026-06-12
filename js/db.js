@@ -2,6 +2,18 @@
 const SUPABASE_URL = 'https://pxodatramesmgggjsyyi.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4b2RhdHJhbWVzbWdnZ2pzeXlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4OTY1OTYsImV4cCI6MjA5MTQ3MjU5Nn0.QNPV1qW-GpoxPLtnT-PVNunQXxKvAEs35pY0vP5Kkjg';
 
+const supabaseGlobal = window.supabase || (typeof supabase !== 'undefined' ? supabase : null);
+const supabaseAuth = supabaseGlobal
+  ? supabaseGlobal.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: {
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        persistSession: true
+      }
+    })
+  : null;
+window.taskerSupabaseAuthReady = !!supabaseAuth;
+
 const sb = {
   async query(table, method = 'GET', body = null, params = '') {
     const url = `${SUPABASE_URL}/rest/v1/${table}${params}`;
