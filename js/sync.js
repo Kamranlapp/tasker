@@ -2,8 +2,7 @@
 async function saveTree() {
   // Always save the main nodes (not the currently active notebook)
   const mainToSave = activeNotepad === null ? nodes : mainNodes;
-  await sb.patch('trees', `?user_id=eq.${currentUser.id}`, { nodes: mainToSave, updated_at: new Date().toISOString() });
-  dirtyTree = false;
+  await sb.patch('trees', `?user_id=eq.${currentUser.id}&notepad_key=is.null`, { nodes: mainToSave, updated_at: new Date().toISOString() });
 }
 
 async function saveUIState() {
@@ -18,7 +17,6 @@ async function saveUIState() {
     todo_collapsed: todoCollapsed,
     updated_at: new Date().toISOString()
   });
-  dirtyUI = false;
 }
 
 async function saveSettings() {
@@ -36,24 +34,29 @@ async function saveSettings() {
     statuses: arr, theme, notepads,
     updated_at: new Date().toISOString()
   });
-  dirtySettings = false;
 }
 
 function markDirtySettings() {
   dirtySettings = true;
+  dirtySettingsVersion++;
   setSyncLed('pending');
   scheduleSave();
 }
 
 // ── Dirty flags & debounced save ───────────────────────────────
 let saveDebounceTimer = null;
+let dirtyTreeVersion = 0;
+let dirtyUIVersion = 0;
+let dirtySettingsVersion = 0;
 
 function markDirtyTree() {
   // When in an extra notebook, tree changes are saved with settings
   if (activeNotepad !== null) {
     dirtySettings = true;
+    dirtySettingsVersion++;
   } else {
     dirtyTree = true;
+    dirtyTreeVersion++;
   }
   setSyncLed('pending');
   scheduleSave();
@@ -61,6 +64,7 @@ function markDirtyTree() {
 
 function markDirtyUI() {
   dirtyUI = true;
+  dirtyUIVersion++;
   setSyncLed('pending');
   scheduleSave();
 }
@@ -74,11 +78,20 @@ async function flushSave() {
   if (!currentUser || isSaving) return;
   const needsSave = dirtyTree || dirtyUI || dirtySettings;
   if (!needsSave) return;
+  const saveTreeNow = dirtyTree;
+  const saveUINow = dirtyUI;
+  const saveSettingsNow = dirtySettings;
+  const treeVersion = dirtyTreeVersion;
+  const uiVersion = dirtyUIVersion;
+  const settingsVersion = dirtySettingsVersion;
   isSaving = true;
   try {
-    if (dirtyTree) await saveTree();
-    if (dirtyUI) await saveUIState();
-    if (dirtySettings) await saveSettings();
+    if (saveTreeNow) await saveTree();
+    if (saveUINow) await saveUIState();
+    if (saveSettingsNow) await saveSettings();
+    if (saveTreeNow && dirtyTreeVersion === treeVersion) dirtyTree = false;
+    if (saveUINow && dirtyUIVersion === uiVersion) dirtyUI = false;
+    if (saveSettingsNow && dirtySettingsVersion === settingsVersion) dirtySettings = false;
     setSyncLed('uploaded');
   } catch (e) {
     console.error('Save failed:', e);
@@ -94,11 +107,20 @@ function startSyncLoop() {
   syncTimer = setInterval(async () => {
     if (!currentUser || isSaving) return;
     const needsSave = dirtyTree || dirtyUI || dirtySettings;
+    const saveTreeNow = dirtyTree;
+    const saveUINow = dirtyUI;
+    const saveSettingsNow = dirtySettings;
+    const treeVersion = dirtyTreeVersion;
+    const uiVersion = dirtyUIVersion;
+    const settingsVersion = dirtySettingsVersion;
     isSaving = true;
     try {
-      if (dirtyTree) await saveTree();
-      if (dirtyUI) await saveUIState();
-      if (dirtySettings) await saveSettings();
+      if (saveTreeNow) await saveTree();
+      if (saveUINow) await saveUIState();
+      if (saveSettingsNow) await saveSettings();
+      if (saveTreeNow && dirtyTreeVersion === treeVersion) dirtyTree = false;
+      if (saveUINow && dirtyUIVersion === uiVersion) dirtyUI = false;
+      if (saveSettingsNow && dirtySettingsVersion === settingsVersion) dirtySettings = false;
       await registerSession();
       setSyncLed(needsSave ? 'uploaded' : 'synced');
     } catch {
@@ -145,7 +167,7 @@ async function registerSession() {
 // ── Load ───────────────────────────────────────────────────────
 async function loadUserData() {
   // Tree (main notebook)
-  const trees = await sb.get('trees', `?user_id=eq.${currentUser.id}&select=nodes`);
+  const trees = await sb.get('trees', `?user_id=eq.${currentUser.id}&notepad_key=is.null&select=nodes`);
   if (trees.length) {
     nodes = trees[0].nodes?.length ? trees[0].nodes : [];
     nextId = nodes.length ? Math.max(...nodes.map(n => n.id)) + 1 : 1;
@@ -201,7 +223,8 @@ async function loadUserData() {
   startSyncLoop();
   setSyncLed('connected');
   checkAndCreateCurrentWeek();
-  setInterval(() => {
+  if (weekCheckTimer) clearInterval(weekCheckTimer);
+  weekCheckTimer = setInterval(() => {
     const now = getCETDate();
     if (now.getDay() === 1 && now.getHours() === 1) checkAndCreateCurrentWeek();
   }, 60 * 60 * 1000);

@@ -1,54 +1,32 @@
 // ── Login ──────────────────────────────────────────────────────
-const wordInputs = Array.from(document.querySelectorAll('.word-input'));
-
-wordInputs.forEach((inp, i) => {
-  inp.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ' ' || e.key === '\t') {
-      e.preventDefault();
-      const next = wordInputs[i + 1];
-      if (next) next.focus(); else doLogin();
-    }
-  });
-  inp.addEventListener('paste', e => {
-    e.preventDefault();
-    const text = e.clipboardData.getData('text').trim();
-    const parts = text.split(/\s+/);
-    if (parts.length >= 2) {
-      parts.slice(0, 6).forEach((w, j) => { if (wordInputs[i + j]) wordInputs[i + j].value = w; });
-    } else {
-      inp.value = text;
-    }
-  });
-});
-
 document.getElementById('login-btn').addEventListener('click', doLogin);
 
+function authRedirectTo() {
+  return window.location.origin + window.location.pathname;
+}
+
 async function doLogin() {
-  const words = wordInputs.map(i => i.value.trim().toLowerCase()).filter(Boolean);
-  if (words.length !== 6) { showLoginError('Please enter all 6 words.'); return; }
-  const phrase = words.join(' ');
   const btn = document.getElementById('login-btn');
-  btn.innerHTML = '<span class="login-spinner"></span>Signing in…';
+  if (!supabaseAuth) {
+    showLoginError('Google sign-in could not load. Check your connection and try again.');
+    return;
+  }
+  btn.innerHTML = '<span class="login-spinner"></span>Opening Google…';
   btn.disabled = true;
-  wordInputs.forEach(i => i.classList.remove('error'));
   try {
-    const users = await sb.get('users', `?seed_phrase=eq.${encodeURIComponent(phrase)}&select=id,seed_phrase,display_name,role`);
-    if (!users.length) {
-      wordInputs.forEach(i => i.classList.add('error'));
-      showLoginError('Phrase not recognised. Check spelling and try again.');
-      btn.innerHTML = 'Sign in'; btn.disabled = false;
-      return;
-    }
-    currentUser = users[0];
-    localStorage.setItem('session_user_id', currentUser.id);
-    localStorage.setItem('session_phrase', phrase);
-    await registerSession();
-    await loadUserData();
-    showApp();
+    const { error } = await supabaseAuth.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: authRedirectTo(),
+        queryParams: { prompt: 'select_account' }
+      }
+    });
+    if (error) throw error;
   } catch (e) {
     showLoginError('Error: ' + e.message);
     console.error('Login error:', e);
-    btn.innerHTML = 'Sign in'; btn.disabled = false;
+    btn.innerHTML = '<span class="google-mark">G</span>Continue with Google';
+    btn.disabled = false;
   }
 }
 
@@ -57,18 +35,59 @@ function showLoginError(msg) {
 }
 
 async function tryAutoLogin() {
-  const uid = localStorage.getItem('session_user_id');
-  const phrase = localStorage.getItem('session_phrase');
-  if (!uid || !phrase) return false;
+  if (!supabaseAuth) return false;
   try {
-    const users = await sb.get('users', `?id=eq.${uid}&seed_phrase=eq.${encodeURIComponent(phrase)}&select=id,seed_phrase,display_name,role`);
-    if (!users.length) return false;
-    currentUser = users[0];
+    const { data, error } = await supabaseAuth.auth.getSession();
+    if (error) throw error;
+    const authUser = data?.session?.user;
+    if (!authUser) return false;
+    const ok = await loadAppUserFromGoogle(authUser);
+    if (!ok) return false;
     await registerSession();
     await loadUserData();
     showApp();
     return true;
-  } catch { return false; }
+  } catch (e) {
+    console.error('Auto login failed:', e);
+    return false;
+  }
+}
+
+async function loadAppUserFromGoogle(authUser) {
+  const email = authUser.email?.trim().toLowerCase();
+  if (!email) {
+    showLoginError('Google did not provide an email address.');
+    return false;
+  }
+
+  let users = await sb.get('users', `?auth_user_id=eq.${authUser.id}&select=id,email,auth_user_id,display_name,role`);
+  if (!users.length) {
+    users = await sb.get('users', `?email=eq.${encodeURIComponent(email)}&select=id,email,auth_user_id,display_name,role`);
+  }
+  if (!users.length) {
+    await supabaseAuth.auth.signOut();
+    showLoginError(`No Task Tracker account is linked to ${email}.`);
+    return false;
+  }
+
+  const user = users[0];
+  if (user.auth_user_id && user.auth_user_id !== authUser.id) {
+    await supabaseAuth.auth.signOut();
+    showLoginError('This app account is already linked to another Google login.');
+    return false;
+  }
+  if (!user.auth_user_id) {
+    const linked = await sb.query('rpc/tasker_link_google_user', 'POST', { target_user_id: user.id });
+    if (!linked.length) {
+      await supabaseAuth.auth.signOut();
+      showLoginError('This Google login could not be linked to the app account.');
+      return false;
+    }
+    currentUser = linked[0];
+    return true;
+  }
+  currentUser = user;
+  return true;
 }
 
 // ── Screen management ──────────────────────────────────────────
@@ -81,16 +100,24 @@ function showApp() {
 
 function showLogin() {
   currentUser = null;
-  localStorage.removeItem('session_user_id');
-  localStorage.removeItem('session_phrase');
   if (syncTimer) { clearInterval(syncTimer); syncTimer = null; }
+  if (weekCheckTimer) { clearInterval(weekCheckTimer); weekCheckTimer = null; }
   document.getElementById('app').classList.remove('open');
   document.getElementById('settings-screen').classList.remove('open');
   document.getElementById('login-screen').style.display = 'flex';
-  document.getElementById('login-btn').innerHTML = 'Sign in';
+  document.getElementById('login-btn').innerHTML = '<span class="google-mark">G</span>Continue with Google';
   document.getElementById('login-btn').disabled = false;
-  wordInputs.forEach(i => { i.value = ''; i.classList.remove('error'); });
   document.getElementById('login-error').textContent = '';
+}
+
+async function logoutCurrentUser() {
+  try {
+    await flushSave();
+    if (supabaseAuth) await supabaseAuth.auth.signOut();
+  } catch (e) {
+    console.error('Logout failed:', e);
+  }
+  showLogin();
 }
 
 // ── Global event listeners ─────────────────────────────────────
@@ -99,10 +126,10 @@ document.getElementById('save-exit-btn').addEventListener('click', () => { close
 document.getElementById('settings-btn').addEventListener('click', openSettings);
 
 document.getElementById('copy-seed-btn').addEventListener('click', () => {
-  navigator.clipboard.writeText(currentUser.seed_phrase);
+  navigator.clipboard.writeText(currentUser.email || '');
   const btn = document.getElementById('copy-seed-btn');
   btn.textContent = 'Copied!';
-  setTimeout(() => btn.textContent = 'Copy phrase', 1500);
+  setTimeout(() => btn.textContent = 'Copy email', 1500);
 });
 
 document.getElementById('logout-other-btn').addEventListener('click', async () => {
@@ -132,7 +159,7 @@ document.getElementById('logout-btn').addEventListener('click', () => {
     count--;
     if (count <= 0) {
       clearInterval(logoutTimer); logoutTimer = null;
-      showLogin();
+      logoutCurrentUser();
     } else {
       btn.textContent = `Stay logged in (${count}s)`;
     }
