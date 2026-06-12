@@ -12,7 +12,6 @@ const supabaseAuth = supabaseGlobal
       }
     })
   : null;
-window.taskerSupabaseAuthReady = !!supabaseAuth;
 
 async function authHeaders() {
   const headers = {
