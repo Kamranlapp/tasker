@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&family=Poppins:wght@400;500&family=Roboto:wght@400;500&family=Barlow:wght@400;500&family=Raleway:wght@400;500&display=swap&subset=latin,cyrillic" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=201">
+<link rel="stylesheet" href="css/style.css?v=205">
 </head>
 <body>
 
@@ -25,8 +25,8 @@
 <!-- LOGIN -->
 <div id="login-screen">
   <div id="login-box">
-    <h1>Task Tracker</h1>
-    <p>Sign in with your linked Google account</p>
+    <div class="login-title" aria-label="Welcome">Welcome</div>
+    <img class="login-app-icon" src="images/login-app-mark.png" alt="Tasker icon">
     <button id="login-btn" class="google-login-btn"><span class="google-mark">G</span>Continue with Google</button>
     <div id="login-error"></div>
   </div>
@@ -90,7 +90,7 @@
         <div id="todo-title">⚠️ To-Do</div>
         <div id="todo-content"></div>
         <div class="bottom-bar">
-          <span class="app-version">v2.0.1</span>
+          <span class="app-version">v2.0.5</span>
           <div id="sync-led" title="Sync status"></div>
           <button id="settings-btn">Settings</button>
         </div>
@@ -102,17 +102,17 @@
   </div>
 </div>
 
-<script src="js/vendor/supabase.js?v=201"></script>
-<script src="js/vendor/supabase-global.js?v=201"></script>
-<script src="js/db.js?v=201"></script>
-<script src="js/state.js?v=201"></script>
-<script src="js/sync.js?v=201"></script>
-<script src="js/tree.js?v=201"></script>
-<script src="js/picker.js?v=201"></script>
-<script src="js/settings.js?v=201"></script>
-<script src="js/render.js?v=201"></script>
-<script src="js/hints.js?v=201"></script>
-<script src="js/onboarding.js?v=201"></script>
-<script src="js/app.js?v=201"></script>
+<script src="js/vendor/supabase.js?v=205"></script>
+<script src="js/vendor/supabase-global.js?v=205"></script>
+<script src="js/db.js?v=205"></script>
+<script src="js/state.js?v=205"></script>
+<script src="js/sync.js?v=205"></script>
+<script src="js/tree.js?v=205"></script>
+<script src="js/picker.js?v=205"></script>
+<script src="js/settings.js?v=205"></script>
+<script src="js/render.js?v=205"></script>
+<script src="js/hints.js?v=205"></script>
+<script src="js/onboarding.js?v=205"></script>
+<script src="js/app.js?v=205"></script>
 </body>
 </html>
