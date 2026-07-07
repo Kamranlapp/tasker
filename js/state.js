@@ -4,6 +4,14 @@ const UNDO_LIMIT = 10;
 const SYNC_INTERVAL = 60000;
 const SAVE_DEBOUNCE = 2000;
 
+const LEVEL_YEAR = 0;
+const LEVEL_QUARTER = 1;
+const LEVEL_MONTH = 2;
+const LEVEL_WEEK = 3;
+const LEVEL_ACCOUNT = 4;
+const LEVEL_TASK = 5;
+const LEVEL_SUB = 6;
+
 const FONT_OPTIONS = [
   { label: 'Menlo / Mono (default)', value: "'Menlo','Monaco','Courier New',monospace" },
   { label: 'JetBrains Mono', value: "'JetBrains Mono',monospace" },
@@ -44,8 +52,8 @@ const BG_LIBRARY = [
 const THEME_DEFAULTS = {
   bg: '#111418', mainBg: '#272d36', rightBg: '#0d1118', notepadBg: '#1a1f27',
   mainBlur: 20, rightBlur: 40, indentSize: 18,
-  yearColor: '#ffffff', monthColor: '#aad4e8', weekColor: '#88c0d0', accountColor: '#c2185b', textColor: '#cdd6f4',
-  yearSize: 16, monthSize: 14, weekSize: 13, accountSize: 13, textSize: 13,
+  yearColor: '#ffffff', quarterColor: '#c7e8f3', monthColor: '#aad4e8', weekColor: '#88c0d0', accountColor: '#c2185b', textColor: '#cdd6f4',
+  yearSize: 16, quarterSize: 14, monthSize: 14, weekSize: 13, accountSize: 13, textSize: 13,
   allFontSize: 0,
   fontFamily: "'Menlo','Monaco','Courier New',monospace",
   bgMode: 'color', bgImageId: null,
@@ -200,6 +208,7 @@ function applyTheme(t) {
   r.setProperty('--indent-size', (th.indentSize ?? D.indentSize) + 'px');
 
   r.setProperty('--c-year',    th.yearColor    || D.yearColor);
+  r.setProperty('--c-quarter', th.quarterColor || D.quarterColor);
   r.setProperty('--c-month',   th.monthColor   || D.monthColor);
   r.setProperty('--c-week',    th.weekColor    || D.weekColor);
   r.setProperty('--c-account', th.accountColor || D.accountColor);
@@ -209,6 +218,7 @@ function applyTheme(t) {
   // Font sizes
   const all = th.allFontSize || 0;
   r.setProperty('--fs-year',    (all || th.yearSize    || D.yearSize)    + 'px');
+  r.setProperty('--fs-quarter', (all || th.quarterSize || D.quarterSize) + 'px');
   r.setProperty('--fs-month',   (all || th.monthSize   || D.monthSize)   + 'px');
   r.setProperty('--fs-week',    (all || th.weekSize    || D.weekSize)    + 'px');
   r.setProperty('--fs-account', (all || th.accountSize || D.accountSize) + 'px');

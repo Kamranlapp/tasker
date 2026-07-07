@@ -10,7 +10,7 @@ async function saveUIState() {
   const mainToSave = activeNotepad === null ? nodes : mainNodes;
   mainToSave.forEach(n => {
     cn[n.id] = n.collapsed;
-    if (n.level === 3 && n.collapsedGroups) cg[n.id] = n.collapsedGroups;
+    if (n.level === LEVEL_ACCOUNT && n.collapsedGroups) cg[n.id] = n.collapsedGroups;
   });
   await sb.patch('ui_state', `?user_id=eq.${currentUser.id}`, {
     collapsed_nodes: cn, collapsed_groups: cg,
@@ -188,7 +188,7 @@ async function loadUserData() {
     const cn = ui.collapsed_nodes || {};
     nodes.forEach(n => {
       if (cn[n.id] !== undefined) n.collapsed = cn[n.id];
-      if (n.level === 3 && cg[n.id]) n.collapsedGroups = cg[n.id];
+      if (n.level === LEVEL_ACCOUNT && cg[n.id]) n.collapsedGroups = cg[n.id];
     });
   }
 

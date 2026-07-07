@@ -309,7 +309,8 @@ function renderThemePanel() {
   const fcTitle = document.createElement('div'); fcTitle.className = 'theme-group-title'; fcTitle.textContent = 'Font Colors & Sizes';
   fcGroup.appendChild(fcTitle);
   const fcGrid = document.createElement('div'); fcGrid.className = 'theme-colors-grid';
-  [['Year','yearColor','yearSize'],['Month','monthColor','monthSize'],
+  [['Year','yearColor','yearSize'],['Quarter','quarterColor','quarterSize'],
+   ['Month','monthColor','monthSize'],
    ['Week','weekColor','weekSize'],['Account','accountColor','accountSize'],
    ['Text','textColor','textSize']]
     .forEach(([l,c,s]) => fcGrid.appendChild(mkColorCell(l, c, editTheme, s)));
