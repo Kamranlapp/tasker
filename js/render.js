@@ -28,11 +28,11 @@ function clearDropIndicators() {
 
 function canNest(srcId, srcLevel, tgtNode) {
   if (srcId === tgtNode.id) return false;
-  if (srcLevel === 5 && tgtNode.level === 4) return true;
-  if (srcLevel === 4 && tgtNode.level === 4) {
+  if (srcLevel === LEVEL_SUB && tgtNode.level === LEVEL_TASK) return true;
+  if (srcLevel === LEVEL_TASK && tgtNode.level === LEVEL_TASK) {
     const srcIdx = nodes.findIndex(n => n.id === srcId);
     if (srcIdx === -1) return false;
-    return !(srcIdx + 1 < nodes.length && nodes[srcIdx + 1].level === 5);
+    return !(srcIdx + 1 < nodes.length && nodes[srcIdx + 1].level === LEVEL_SUB);
   }
   return false;
 }
@@ -63,16 +63,16 @@ function attachDropTarget(el, acceptLevel, onDrop, onFiles) {
 
 function attachRowDragEvents(el, node, onFiles) {
   el.addEventListener('dragover', e => {
-    const isFileDrop = !dragState && node.level === 4 && onFiles &&
+    const isFileDrop = !dragState && node.level === LEVEL_TASK && onFiles &&
       Array.from(e.dataTransfer?.types || []).includes('Files');
     if (isFileDrop) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; el.classList.add('drag-over'); return; }
     if (!dragState) return;
     const { nodeId: srcId, level: srcLevel } = dragState;
     const tgtLevel = node.level;
     const valid =
-      (srcLevel === 4 && tgtLevel === 4 && srcId !== node.id) ||
-      (srcLevel === 5 && tgtLevel === 4) ||
-      (srcLevel === 5 && tgtLevel === 5 && srcId !== node.id);
+      (srcLevel === LEVEL_TASK && tgtLevel === LEVEL_TASK && srcId !== node.id) ||
+      (srcLevel === LEVEL_SUB && tgtLevel === LEVEL_TASK) ||
+      (srcLevel === LEVEL_SUB && tgtLevel === LEVEL_SUB && srcId !== node.id);
     if (!valid) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
@@ -117,7 +117,7 @@ function attachRowDragEvents(el, node, onFiles) {
   });
 
   el.addEventListener('drop', e => {
-    if (!dragState && e.dataTransfer?.files?.length && node.level === 4 && onFiles) {
+    if (!dragState && e.dataTransfer?.files?.length && node.level === LEVEL_TASK && onFiles) {
       e.preventDefault(); e.stopPropagation();
       el.classList.remove('drag-over', 'drop-before', 'drop-after', 'drop-nest');
       onFiles(e.dataTransfer.files);
@@ -133,21 +133,21 @@ function attachRowDragEvents(el, node, onFiles) {
     el.classList.remove('drag-over');
 
     if (nestReady) {
-      if (srcLevel === 4 && tgtLevel === 4) {
+      if (srcLevel === LEVEL_TASK && tgtLevel === LEVEL_TASK) {
         nestTaskUnderTask(srcId, tgtId);
-      } else if (srcLevel === 5 && tgtLevel === 4) {
+      } else if (srcLevel === LEVEL_SUB && tgtLevel === LEVEL_TASK) {
         pushUndo();
         const tgtNode = nodes.find(n => n.id === tgtId);
         if (tgtNode) tgtNode.collapsed = false;
         moveSubToTask(srcId, tgtId);
       }
-    } else if (srcLevel === 4 && tgtLevel === 4) {
+    } else if (srcLevel === LEVEL_TASK && tgtLevel === LEVEL_TASK) {
       if (dropPos === 'before') insertTaskBefore(srcId, tgtId);
       else insertTaskAfter(srcId, tgtId);
-    } else if (srcLevel === 5 && tgtLevel === 4) {
+    } else if (srcLevel === LEVEL_SUB && tgtLevel === LEVEL_TASK) {
       if (dropPos === 'before') promoteSubToTask(srcId, tgtId, 'before');
       else promoteSubToTask(srcId, tgtId, 'after');
-    } else if (srcLevel === 5 && tgtLevel === 5) {
+    } else if (srcLevel === LEVEL_SUB && tgtLevel === LEVEL_SUB) {
       if (dropPos === 'before') insertSubBefore(srcId, tgtId);
       else insertSubAfter(srcId, tgtId);
     }
@@ -170,8 +170,8 @@ function attachFilesToTask(files, taskId) {
     if (taskIdx === -1) return;
     pushUndo();
     let ins = taskIdx + 1;
-    while (ins < nodes.length && nodes[ins].level === 5) ins++;
-    const subs = good.map(r => ({ id: nextId++, level: 5, text: r.fileName, isAttachment: true, fileName: r.fileName, dataUrl: r.dataUrl, size: r.size }));
+    while (ins < nodes.length && nodes[ins].level === LEVEL_SUB) ins++;
+    const subs = good.map(r => ({ id: nextId++, level: LEVEL_SUB, text: r.fileName, isAttachment: true, fileName: r.fileName, dataUrl: r.dataUrl, size: r.size }));
     nodes.splice(ins, 0, ...subs);
     nodes[taskIdx].collapsed = false;
     markDirtyTree();
@@ -243,7 +243,7 @@ function syncGutterHeights() {
 // ── Group row ──────────────────────────────────────────────────
 function renderGroupRow(el, row) {
   el.className = 'row row-group';
-  for (let d = 0; d < 4; d++) el.appendChild(mk('span')).className = 'indent';
+  for (let d = 0; d < LEVEL_TASK; d++) el.appendChild(mk('span')).className = 'indent';
 
   const tog = mk('span');
   tog.className = 'toggle ' + (row.collapsed ? 'closed' : 'open');
@@ -274,7 +274,7 @@ function renderGroupRow(el, row) {
     render();
   });
 
-  attachDropTarget(el, 4, taskId => {
+  attachDropTarget(el, LEVEL_TASK, taskId => {
     pushUndo();
     const acc = nodes.find(n => n.id === row.accId);
     if (acc) {
@@ -290,7 +290,7 @@ function renderGroupRow(el, row) {
 // ── Status-group row (Status mode only) ───────────────────────
 function renderStatusGroupRow(el, row) {
   el.className = 'row row-group';
-  for (let d = 0; d < 3; d++) el.appendChild(mk('span')).className = 'indent';
+  for (let d = 0; d < LEVEL_ACCOUNT; d++) el.appendChild(mk('span')).className = 'indent';
 
   const tog = mk('span');
   tog.className = 'toggle ' + (row.collapsed ? 'closed' : 'open');
@@ -331,28 +331,28 @@ function buildStatusRows() {
     const n = nodes[i];
     if (isAncestorCollapsed(i)) { i++; continue; }
 
-    if (n.level <= 1) { rows.push({ kind: 'node', node: n, nodeIdx: i }); i++; continue; }
+    if (n.level <= LEVEL_MONTH) { rows.push({ kind: 'node', node: n, nodeIdx: i }); i++; continue; }
 
-    if (n.level === 2) {
+    if (n.level === LEVEL_WEEK) {
       rows.push({ kind: 'node', node: n, nodeIdx: i });
       i++;
-      if (n.collapsed) { while (i < nodes.length && nodes[i].level > 2) i++; continue; }
+      if (n.collapsed) { while (i < nodes.length && nodes[i].level > LEVEL_WEEK) i++; continue; }
 
       // Parse week's accounts → tasks grouped by status
       const byStatus = {}; // status → [{ accNode, accIdx, tasks:[{node,nodeIdx,subs}] }]
       let j = i;
-      while (j < nodes.length && nodes[j].level > 2) {
-        if (nodes[j].level === 3) {
+      while (j < nodes.length && nodes[j].level > LEVEL_WEEK) {
+        if (nodes[j].level === LEVEL_ACCOUNT) {
           const accNode = nodes[j], accIdx = j;
           const tasksByStatus = {};
           j++;
-          while (j < nodes.length && nodes[j].level > 3) {
-            if (nodes[j].level === 4) {
+          while (j < nodes.length && nodes[j].level > LEVEL_ACCOUNT) {
+            if (nodes[j].level === LEVEL_TASK) {
               const s = nodes[j].status || 'todo';
               if (!tasksByStatus[s]) tasksByStatus[s] = [];
               const t = { node: nodes[j], nodeIdx: j, subs: [] };
               j++;
-              while (j < nodes.length && nodes[j].level === 5) { t.subs.push({ node: nodes[j], nodeIdx: j }); j++; }
+              while (j < nodes.length && nodes[j].level === LEVEL_SUB) { t.subs.push({ node: nodes[j], nodeIdx: j }); j++; }
               tasksByStatus[s].push(t);
             } else { j++; }
           }
@@ -398,12 +398,12 @@ function renderNodeRow(el, row) {
 
   const indent = node.level + (row.extraIndent || 0);
   for (let d = 0; d < indent; d++) el.appendChild(mk('span')).className = 'indent';
-  if (node.level === 4 || node.level === 5) {
+  if (node.level === LEVEL_TASK || node.level === LEVEL_SUB) {
     el.appendChild(mk('span', 'width:15px;display:inline-block;flex-shrink:0;'));
   }
 
   const kids = hasChildren(ni);
-  if (node.level < 5 && kids) {
+  if (node.level < LEVEL_SUB && kids) {
     const tog = mk('span');
     tog.className = 'toggle ' + (node.collapsed ? 'closed' : 'open');
     tog.textContent = '▾';
@@ -413,7 +413,7 @@ function renderNodeRow(el, row) {
     el.appendChild(mk('span')).className = 'toggle-spacer';
   }
 
-  if (node.level === 4 && !isEditing) {
+  if (node.level === LEVEL_TASK && !isEditing) {
     const a = mk('span', 'flex-shrink:0;width:0;overflow:visible;position:relative;align-self:stretch;');
     a.setAttribute('data-anchor', node.id);
     el.appendChild(a);
@@ -421,7 +421,7 @@ function renderNodeRow(el, row) {
 
   if (isEditing) {
     renderEditInput(el, node, ni);
-  } else if (node.level === 5 && node.isAttachment) {
+  } else if (node.level === LEVEL_SUB && node.isAttachment) {
     const a = document.createElement('a');
     a.className = 'label label-flex sub-attach';
     a.href = node.dataUrl;
@@ -430,7 +430,7 @@ function renderNodeRow(el, row) {
     a.title = node.fileName || 'attachment';
     a.addEventListener('click', e => e.stopPropagation());
     el.appendChild(a);
-  } else if (node.level === 5) {
+  } else if (node.level === LEVEL_SUB) {
     const domain = linkDomain(node.text);
     if (domain) {
       const a = document.createElement('a');
@@ -449,15 +449,15 @@ function renderNodeRow(el, row) {
       el.appendChild(lbl);
     }
   } else {
-    const lc = (node.level >= 1 && node.level <= 3) ? 'label label-shrink' : 'label label-flex';
+    const lc = (node.level >= LEVEL_QUARTER && node.level <= LEVEL_ACCOUNT) ? 'label label-shrink' : 'label label-flex';
     const lbl = mk('span');
     lbl.className = lc;
     lbl.textContent = node.text;
-    if (node.level === 4) attachLabelExpand(lbl, node);
+    if (node.level === LEVEL_TASK) attachLabelExpand(lbl, node);
     el.appendChild(lbl);
   }
 
-  if ((node.level === 2 || node.level === 3) && !isEditing) {
+  if ((node.level === LEVEL_WEEK || node.level === LEVEL_ACCOUNT) && !isEditing) {
     el.appendChild(mk('span', 'width:8px;flex-shrink:0;'));
     const ab = mk('span');
     ab.className = 'add-btn';
@@ -465,9 +465,11 @@ function renderNodeRow(el, row) {
     ab.addEventListener('click', e => { e.stopPropagation(); addChild(ni); });
     el.appendChild(ab);
 
-    if (node.level === 3) {
+    if (node.level === LEVEL_ACCOUNT) {
       let tc = 0;
-      for (let i = ni + 1; i < nodes.length && nodes[i].level === 4; i++) tc++;
+      for (let i = ni + 1; i < nodes.length && nodes[i].level > LEVEL_ACCOUNT; i++) {
+        if (nodes[i].level === LEVEL_TASK) tc++;
+      }
       if (tc) {
         el.appendChild(mk('span', 'width:5px;flex-shrink:0;'));
         const c = mk('span');
@@ -479,21 +481,21 @@ function renderNodeRow(el, row) {
     el.appendChild(mk('span', 'flex:1'));
   }
 
-  if ((node.level === 5 || node.level === 4 || node.level === 3) && !isEditing) {
+  if ((node.level === LEVEL_SUB || node.level === LEVEL_TASK || node.level === LEVEL_ACCOUNT) && !isEditing) {
     const dh = mk('span');
     dh.className = 'del-hint';
     dh.textContent = '⌫';
-    dh.title = node.level === 3 ? 'Delete account and entries' : node.level === 4 ? 'Delete entry' : 'Delete sub-entry';
+    dh.title = node.level === LEVEL_ACCOUNT ? 'Delete account and entries' : node.level === LEVEL_TASK ? 'Delete entry' : 'Delete sub-entry';
     dh.addEventListener('click', e => {
       e.stopPropagation();
       pushUndo();
-      if (node.level === 3) {
+      if (node.level === LEVEL_ACCOUNT) {
         let end = ni + 1;
-        while (end < nodes.length && nodes[end].level >= 4) end++;
+        while (end < nodes.length && nodes[end].level >= LEVEL_TASK) end++;
         nodes.splice(ni, end - ni);
-      } else if (node.level === 4) {
+      } else if (node.level === LEVEL_TASK) {
         let end = ni + 1;
-        while (end < nodes.length && nodes[end].level === 5) end++;
+        while (end < nodes.length && nodes[end].level === LEVEL_SUB) end++;
         nodes.splice(ni, end - ni);
       } else {
         nodes.splice(ni, 1);
@@ -504,14 +506,14 @@ function renderNodeRow(el, row) {
     el.appendChild(dh);
   }
 
-  if ((node.level === 4 || node.level === 5) && !isEditing) {
+  if ((node.level === LEVEL_TASK || node.level === LEVEL_SUB) && !isEditing) {
     el.draggable = true;
     el.addEventListener('dragstart', e => { e.stopPropagation(); startDrag(e, node.id, node.level); });
     el.addEventListener('dragend', endDrag);
   }
 
-  if (node.level === 3 && !isEditing) {
-    attachDropTarget(el, 4, taskId => {
+  if (node.level === LEVEL_ACCOUNT && !isEditing) {
+    attachDropTarget(el, LEVEL_TASK, taskId => {
       pushUndo();
       node.collapsed = false;
       moveTaskToAccount(taskId, node.id);
@@ -519,8 +521,8 @@ function renderNodeRow(el, row) {
     });
   }
 
-  if ((node.level === 4 || node.level === 5) && !isEditing) {
-    attachRowDragEvents(el, node, node.level === 4 ? files => attachFilesToTask(files, node.id) : null);
+  if ((node.level === LEVEL_TASK || node.level === LEVEL_SUB) && !isEditing) {
+    attachRowDragEvents(el, node, node.level === LEVEL_TASK ? files => attachFilesToTask(files, node.id) : null);
   }
 
   attachNodeEvents(el, node, ni, row, isEditing);
@@ -543,17 +545,17 @@ function attachLabelExpand(lbl, node) {
 
 // ── Edit input ─────────────────────────────────────────────────
 function renderEditInput(el, node, ni) {
-  const multiline = node.level === 4 || node.level === 5;
+  const multiline = node.level === LEVEL_TASK || node.level === LEVEL_SUB;
   const inp = document.createElement(multiline ? 'textarea' : 'input');
   inp.className = 'row-edit' + (multiline ? ' row-edit-multi' : '');
-  if (!multiline) inp.placeholder = node.level === 3 ? 'account name…' : 'new entry…';
+  if (!multiline) inp.placeholder = node.level === LEVEL_ACCOUNT ? 'account name…' : 'new entry…';
   inp.value = node.text || '';
 
   // Account name autocomplete — live names only, Tab inserts first match
   let accNames = [];
-  if (node.level === 3) {
+  if (node.level === LEVEL_ACCOUNT) {
     accNames = [...new Set(
-      nodes.filter(n => n.level === 3 && n.text && n.id !== node.id).map(n => n.text)
+      nodes.filter(n => n.level === LEVEL_ACCOUNT && n.text && n.id !== node.id).map(n => n.text)
     )];
     const dlId = 'acc-names-dl';
     const dl = document.createElement('datalist');
@@ -594,7 +596,7 @@ function renderEditInput(el, node, ni) {
       let ins = curIdx + 1;
       while (ins < nodes.length && nodes[ins].level > node.level) ins++;
       const nn = { id: nextId++, level: node.level, text: '' };
-      if (nn.level === 4) nn.status = node.status || 'todo';
+      if (nn.level === LEVEL_TASK) nn.status = node.status || 'todo';
       nodes.splice(ins, 0, nn);
       focusedNodeId = nn.id; editingNodeId = nn.id;
     }
@@ -602,7 +604,7 @@ function renderEditInput(el, node, ni) {
   };
 
   inp.addEventListener('keydown', e => {
-    if (e.key === 'Tab' && node.level === 3 && accNames.length) {
+    if (e.key === 'Tab' && node.level === LEVEL_ACCOUNT && accNames.length) {
       const q = inp.value.toLowerCase();
       const match = q
         ? (accNames.find(n => n.toLowerCase().startsWith(q)) || accNames.find(n => n.toLowerCase().includes(q)))
@@ -669,9 +671,9 @@ function updateMobileStatusPicker(node, rowEl, dx, unlocked) {
 
 function createSubtaskFromSwipe(node, ni) {
   pushUndo();
-  const nn = { id: nextId++, level: 5, text: '' };
+  const nn = { id: nextId++, level: LEVEL_SUB, text: '' };
   let ins = ni + 1;
-  while (ins < nodes.length && nodes[ins].level === 5) ins++;
+  while (ins < nodes.length && nodes[ins].level === LEVEL_SUB) ins++;
   nodes.splice(ins, 0, nn);
   node.collapsed = false;
   focusedNodeId = nn.id;
@@ -706,7 +708,7 @@ function attachNodeEvents(el, node, ni, row, isEditing) {
   el.addEventListener('contextmenu', e => {
     e.preventDefault();
     focusedNodeId = node.id;
-    if (node.level === 4 && !isEditing) {
+    if (node.level === LEVEL_TASK && !isEditing) {
       const a = getStatusPickerAnchor(el, node.id);
       picker?.nodeId === node.id ? advancePicker() : openPicker(node.id, a, true);
       return;
@@ -718,7 +720,7 @@ function attachNodeEvents(el, node, ni, row, isEditing) {
   el.addEventListener('focus', () => { focusedNodeId = node.id; });
 
   // ── Mobile task gestures ──
-  if (!isEditing && node.level === 4 && window.matchMedia && window.matchMedia('(max-width: 768px)').matches) {
+  if (!isEditing && node.level === LEVEL_TASK && window.matchMedia && window.matchMedia('(max-width: 768px)').matches) {
     let tStart = null;
     let longTimer = null;
     let slideTimer = null;
@@ -847,50 +849,50 @@ function handleNodeKeydown(e, node, ni, row) {
     render();
   } else if (e.key === 'Enter') {
     e.preventDefault();
-    if (node.level < 3) return;
+    if (node.level < LEVEL_ACCOUNT) return;
     pushUndo();
-    if (node.level === 3) {
+    if (node.level === LEVEL_ACCOUNT) {
       // add task child at end of account
-      const nn = { id: nextId++, level: 4, text: '', status: 'todo' };
+      const nn = { id: nextId++, level: LEVEL_TASK, text: '', status: 'todo' };
       let ins = ni + 1;
-      while (ins < nodes.length && nodes[ins].level >= 4) ins++;
+      while (ins < nodes.length && nodes[ins].level >= LEVEL_TASK) ins++;
       nodes.splice(ins, 0, nn);
       node.collapsed = false;
       focusedNodeId = nn.id; editingNodeId = nn.id;
-    } else if (node.level === 4) {
+    } else if (node.level === LEVEL_TASK) {
       if (e.shiftKey) {
         // add sub-entry at end of this task's subs
-        const nn = { id: nextId++, level: 5, text: '' };
+        const nn = { id: nextId++, level: LEVEL_SUB, text: '' };
         let ins = ni + 1;
-        while (ins < nodes.length && nodes[ins].level === 5) ins++;
+        while (ins < nodes.length && nodes[ins].level === LEVEL_SUB) ins++;
         nodes.splice(ins, 0, nn);
         node.collapsed = false;
         focusedNodeId = nn.id; editingNodeId = nn.id;
       } else {
         // add sibling task after this task and its subs
-        const nn = { id: nextId++, level: 4, text: '', status: 'todo' };
+        const nn = { id: nextId++, level: LEVEL_TASK, text: '', status: 'todo' };
         let ins = ni + 1;
-        while (ins < nodes.length && nodes[ins].level === 5) ins++;
+        while (ins < nodes.length && nodes[ins].level === LEVEL_SUB) ins++;
         nodes.splice(ins, 0, nn);
         focusedNodeId = nn.id; editingNodeId = nn.id;
       }
     } else {
-      // level 5: add sibling sub-entry
-      const nn = { id: nextId++, level: 5, text: '' };
+      // level 6: add sibling sub-entry
+      const nn = { id: nextId++, level: LEVEL_SUB, text: '' };
       nodes.splice(ni + 1, 0, nn);
       focusedNodeId = nn.id; editingNodeId = nn.id;
     }
     markDirtyTree(); render();
-  } else if ((e.key === 'Delete' || e.key === 'Backspace') && document.getElementById('left-wrap')?.matches(':hover') && nodes.length > 1 && (node.level === 5 || node.level === 4 || node.level === 3)) {
+  } else if ((e.key === 'Delete' || e.key === 'Backspace') && document.getElementById('left-wrap')?.matches(':hover') && nodes.length > 1 && (node.level === LEVEL_SUB || node.level === LEVEL_TASK || node.level === LEVEL_ACCOUNT)) {
     e.preventDefault();
     pushUndo();
-    if (node.level === 3) {
+    if (node.level === LEVEL_ACCOUNT) {
       let end = ni + 1;
-      while (end < nodes.length && nodes[end].level >= 4) end++;
+      while (end < nodes.length && nodes[end].level >= LEVEL_TASK) end++;
       nodes.splice(ni, end - ni);
-    } else if (node.level === 4) {
+    } else if (node.level === LEVEL_TASK) {
       let end = ni + 1;
-      while (end < nodes.length && nodes[end].level === 5) end++;
+      while (end < nodes.length && nodes[end].level === LEVEL_SUB) end++;
       nodes.splice(ni, end - ni);
     } else {
       nodes.splice(ni, 1);
@@ -1115,29 +1117,29 @@ function buildSearchRows() {
   const q = searchQuery.toLowerCase();
   const rows = [];
 
-  // Accounts (level 3) whose name matches — their tasks are all included
+  // Accounts whose name matches — their tasks are all included
   const matchingAccIds = new Set();
   nodes.forEach(n => {
-    if (n.level === 3 && n.text.toLowerCase().includes(q)) matchingAccIds.add(n.id);
+    if (n.level === LEVEL_ACCOUNT && n.text.toLowerCase().includes(q)) matchingAccIds.add(n.id);
   });
 
   // Collect matching task IDs:
   //   • task text matches
   //   • task lives under a matching account
-  //   • a level-5 sub text matches (parent task is added)
+  //   • a sub-entry text matches (parent task is added)
   const matchingTaskIds = new Set();
   let curAccId = null;
   nodes.forEach((n, i) => {
-    if (n.level === 3) { curAccId = n.id; }
-    else if (n.level < 3) { curAccId = null; }
+    if (n.level === LEVEL_ACCOUNT) { curAccId = n.id; }
+    else if (n.level < LEVEL_ACCOUNT) { curAccId = null; }
 
-    if (n.level === 4) {
+    if (n.level === LEVEL_TASK) {
       if (n.text.toLowerCase().includes(q) || (curAccId && matchingAccIds.has(curAccId)))
         matchingTaskIds.add(n.id);
-    } else if (n.level === 5 && n.text.toLowerCase().includes(q)) {
+    } else if (n.level === LEVEL_SUB && n.text.toLowerCase().includes(q)) {
       for (let j = i - 1; j >= 0; j--) {
-        if (nodes[j].level === 4) { matchingTaskIds.add(nodes[j].id); break; }
-        if (nodes[j].level < 4) break;
+        if (nodes[j].level === LEVEL_TASK) { matchingTaskIds.add(nodes[j].id); break; }
+        if (nodes[j].level < LEVEL_TASK) break;
       }
     }
   });
@@ -1146,8 +1148,8 @@ function buildSearchRows() {
   function subtreeHasMatch(idx, maxLevel) {
     for (let j = idx + 1; j < nodes.length; j++) {
       if (nodes[j].level <= maxLevel) break;
-      if (nodes[j].level === 3 && matchingAccIds.has(nodes[j].id)) return true;
-      if (nodes[j].level === 4 && matchingTaskIds.has(nodes[j].id)) return true;
+      if (nodes[j].level === LEVEL_ACCOUNT && matchingAccIds.has(nodes[j].id)) return true;
+      if (nodes[j].level === LEVEL_TASK && matchingTaskIds.has(nodes[j].id)) return true;
     }
     return false;
   }
@@ -1156,19 +1158,19 @@ function buildSearchRows() {
   while (i < nodes.length) {
     const n = nodes[i];
 
-    if (n.level <= 2) {
+    if (n.level <= LEVEL_WEEK) {
       if (subtreeHasMatch(i, n.level)) rows.push({ kind: 'node', node: n, nodeIdx: i });
       i++; continue;
     }
 
-    if (n.level === 3) {
+    if (n.level === LEVEL_ACCOUNT) {
       const accMatches = matchingAccIds.has(n.id);
-      if (accMatches || subtreeHasMatch(i, 3)) {
+      if (accMatches || subtreeHasMatch(i, LEVEL_ACCOUNT)) {
         rows.push({ kind: 'node', node: n, nodeIdx: i });
         i++;
         // If the account itself matched, include all its tasks and subs
         if (accMatches) {
-          while (i < nodes.length && nodes[i].level >= 4) {
+          while (i < nodes.length && nodes[i].level >= LEVEL_TASK) {
             rows.push({ kind: 'node', node: nodes[i], nodeIdx: i });
             i++;
           }
@@ -1180,18 +1182,18 @@ function buildSearchRows() {
       continue;
     }
 
-    if (n.level === 4) {
+    if (n.level === LEVEL_TASK) {
       if (matchingTaskIds.has(n.id)) {
         rows.push({ kind: 'node', node: n, nodeIdx: i });
         i++;
-        while (i < nodes.length && nodes[i].level === 5) {
+        while (i < nodes.length && nodes[i].level === LEVEL_SUB) {
           if (nodes[i].text.toLowerCase().includes(q))
             rows.push({ kind: 'node', node: nodes[i], nodeIdx: i });
           i++;
         }
       } else {
         i++;
-        while (i < nodes.length && nodes[i].level === 5) i++;
+        while (i < nodes.length && nodes[i].level === LEVEL_SUB) i++;
       }
       continue;
     }
@@ -1245,15 +1247,15 @@ function buildTodoPanel() {
   let curWeek = null, curAcc = null, curItems = [];
 
   nodes.forEach(n => {
-    if (n.level === 2) {
+    if (n.level === LEVEL_WEEK) {
       if (curWeek) { if (curAcc && curItems.length) curWeek.accs.push({ acc: curAcc, items: [...curItems] }); weeks.push(curWeek); }
       curWeek = { label: n.text, accs: [] }; curAcc = null; curItems = [];
     }
-    if (n.level === 3) {
+    if (n.level === LEVEL_ACCOUNT) {
       if (curAcc && curItems.length && curWeek) curWeek.accs.push({ acc: curAcc, items: [...curItems] });
       curAcc = n; curItems = [];
     }
-    if (n.level === 4 && n.status === 'todo' && curAcc) curItems.push(n);
+    if (n.level === LEVEL_TASK && n.status === 'todo' && curAcc) curItems.push(n);
   });
   if (curWeek) {
     if (curAcc && curItems.length) curWeek.accs.push({ acc: curAcc, items: [...curItems] });

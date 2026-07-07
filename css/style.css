@@ -50,11 +50,13 @@
   --c-right-blur:40px;
   --c-year:#ffffff;
   --c-month:#aad4e8;
+  --c-quarter:#c7e8f3;
   --c-week:#88c0d0;
   --c-account:#c2185b;
   --c-text:#cdd6f4;
   --fs-year:16px;
   --fs-month:14px;
+  --fs-quarter:14px;
   --fs-week:13px;
   --fs-account:13px;
   --fs-text:13px;
@@ -443,18 +445,19 @@ html,body{width:100%;height:100%;background-color:var(--c-bg);overflow:hidden;fo
 .label-flex{flex:1;min-width:0;}.label-shrink{flex:0 1 auto;min-width:0;}
 .mob-status{display:none;}
 .row.expanded .label{white-space:pre-wrap;overflow:visible;text-overflow:clip;word-break:break-word;}
-.level-4 .label,.level-5 .label{cursor:pointer;}
+.level-5 .label,.level-6 .label{cursor:pointer;}
 .level-0 .label{color:var(--c-year);font-weight:bold;font-size:var(--fs-year);}
-.level-1 .label{color:var(--c-month);font-weight:bold;font-size:var(--fs-month);}
-.level-2 .label{color:var(--c-week);font-weight:bold;font-size:var(--fs-week);}
-.level-3 .label{color:var(--c-account);font-weight:bold;font-size:var(--fs-account);}
+.level-1 .label{color:var(--c-quarter);font-weight:bold;font-size:var(--fs-quarter);}
+.level-2 .label{color:var(--c-month);font-weight:bold;font-size:var(--fs-month);}
+.level-3 .label{color:var(--c-week);font-weight:bold;font-size:var(--fs-week);}
+.level-4 .label{color:var(--c-account);font-weight:bold;font-size:var(--fs-account);}
 .row-group .label{color:#e0b0ff;font-weight:bold;font-size:13px;}
-.level-4 .label{color:var(--c-text);font-size:var(--fs-text);}
-.level-5 .label{color:var(--c-text);font-size:var(--fs-text);opacity:0.7;}
-.level-5 a.label{color:#88c0d0;opacity:1;text-decoration:none;}
-.level-5 a.label:hover{text-decoration:underline;}
-.level-5 a.sub-attach{color:#b7d7a8;}
-.level-5 a.sub-attach:hover{text-decoration:underline;}
+.level-5 .label{color:var(--c-text);font-size:var(--fs-text);}
+.level-6 .label{color:var(--c-text);font-size:var(--fs-text);opacity:0.7;}
+.level-6 a.label{color:#88c0d0;opacity:1;text-decoration:none;}
+.level-6 a.label:hover{text-decoration:underline;}
+.level-6 a.sub-attach{color:#b7d7a8;}
+.level-6 a.sub-attach:hover{text-decoration:underline;}
 .row-edit{background:#1a1f27;border:1px solid #3a4a5a;border-radius:8px;color:#cdd6f4;font-family:inherit;font-size:13px;padding:0 8px;outline:none;height:20px;min-width:120px;flex:0 1 auto;max-width:280px;caret-color:#88c0d0;user-select:text;}
 .row-edit::placeholder{color:#3a4a5a;}.row-edit:focus{border-color:#4a6a8a;background:#1e2530;}
 textarea.row-edit-multi{resize:none;overflow:hidden;line-height:1.4;padding:4px 8px;max-width:none;flex:1;height:auto;min-height:20px;white-space:pre-wrap;word-break:break-word;}
@@ -649,16 +652,17 @@ textarea.row-edit-multi{resize:none;overflow:hidden;line-height:1.4;padding:4px 
   /* ── Fixed left indents per level (mobile) ── */
   #left-wrap .row > .indent{display:none;}
   #left-wrap .row{margin-left:0;margin-right:4px;padding-left:0;}
-  #left-wrap .row.level-0{padding-left:60px;}
-  #left-wrap .row.level-1{padding-left:50px;}
-  #left-wrap .row.level-2{padding-left:40px;}
-  #left-wrap .row.level-3{padding-left:30px;}
+  #left-wrap .row.level-0{padding-left:70px;}
+  #left-wrap .row.level-1{padding-left:60px;}
+  #left-wrap .row.level-2{padding-left:50px;}
+  #left-wrap .row.level-3{padding-left:40px;}
+  #left-wrap .row.level-4{padding-left:30px;}
   #left-wrap .row.row-group{padding-left:20px;}
-  #left-wrap .row.level-4{padding-left:10px;}
-  #left-wrap .row.level-5{padding-left:20px;}
-  /* Cancel the extra 15px spacer that render.js inserts on level 4/5 */
-  #left-wrap .row.level-4 > span[style*="15px"],
-  #left-wrap .row.level-5 > span[style*="15px"]{display:none;}
+  #left-wrap .row.level-5{padding-left:10px;}
+  #left-wrap .row.level-6{padding-left:20px;}
+  /* Cancel the extra 15px spacer that render.js inserts on task/sub-entry rows */
+  #left-wrap .row.level-5 > span[style*="15px"],
+  #left-wrap .row.level-6 > span[style*="15px"]{display:none;}
 
   /* ── Status picker — bigger touch options, pinned to the row's right edge ── */
   .status-picker{right:8px;padding:3px 6px;}
