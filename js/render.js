@@ -179,6 +179,190 @@ function attachFilesToTask(files, taskId) {
   });
 }
 
+function attachmentMimeType(node) {
+  const dataUrl = node && node.dataUrl;
+  if (typeof dataUrl !== 'string') return '';
+  const m = dataUrl.match(/^data:([^;,]+)/i);
+  return m ? m[1].toLowerCase() : '';
+}
+
+function attachmentExtension(node) {
+  const fileName = (node && (node.fileName || node.text) || '').toLowerCase();
+  const m = fileName.match(/\.([a-z0-9]+)$/i);
+  return m ? m[1] : '';
+}
+
+function isCsvAttachment(node) {
+  const mime = attachmentMimeType(node);
+  const ext = attachmentExtension(node);
+  return ext === 'csv' || mime === 'text/csv' || mime === 'application/csv';
+}
+
+function isPdfAttachment(node) {
+  return attachmentMimeType(node) === 'application/pdf' || attachmentExtension(node) === 'pdf';
+}
+
+function isImageAttachment(node) {
+  const mime = attachmentMimeType(node);
+  const ext = attachmentExtension(node);
+  return /^image\/(png|jpe?g|gif|webp|bmp|avif)$/i.test(mime) || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'avif'].includes(ext);
+}
+
+function isPreviewableAttachment(node) {
+  return isPdfAttachment(node) || isImageAttachment(node) || isCsvAttachment(node);
+}
+
+function dataUrlText(dataUrl) {
+  if (typeof dataUrl !== 'string') return '';
+  const comma = dataUrl.indexOf(',');
+  if (comma === -1) return '';
+  const meta = dataUrl.slice(0, comma);
+  const body = dataUrl.slice(comma + 1);
+  try {
+    if (/;base64/i.test(meta)) {
+      const bin = atob(body);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return new TextDecoder('utf-8').decode(bytes).replace(/^\uFEFF/, '');
+    }
+    return decodeURIComponent(body.replace(/\+/g, '%20')).replace(/^\uFEFF/, '');
+  } catch {
+    return '';
+  }
+}
+
+function csvDelimiter(text) {
+  const counts = { ',': 0, ';': 0, '\t': 0 };
+  let quoted = false;
+  let lines = 0;
+  for (let i = 0; i < text.length && lines < 5; i++) {
+    const ch = text[i];
+    if (quoted) {
+      if (ch === '"' && text[i + 1] === '"') i++;
+      else if (ch === '"') quoted = false;
+    } else if (ch === '"') {
+      quoted = true;
+    } else if (ch === '\n') {
+      lines++;
+    } else if (Object.prototype.hasOwnProperty.call(counts, ch)) {
+      counts[ch]++;
+    }
+  }
+  return Object.keys(counts).reduce((best, ch) => counts[ch] > counts[best] ? ch : best, ',');
+}
+
+function parseCsvRows(text) {
+  const rows = [];
+  let row = [];
+  let cell = '';
+  let quoted = false;
+  const delimiter = csvDelimiter(text);
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (quoted) {
+      if (ch === '"' && text[i + 1] === '"') {
+        cell += '"';
+        i++;
+      } else if (ch === '"') {
+        quoted = false;
+      } else {
+        cell += ch;
+      }
+    } else if (ch === '"') {
+      quoted = true;
+    } else if (ch === delimiter) {
+      row.push(cell);
+      cell = '';
+    } else if (ch === '\n') {
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = '';
+    } else if (ch !== '\r') {
+      cell += ch;
+    }
+  }
+
+  if (cell || row.length) {
+    row.push(cell);
+    rows.push(row);
+  }
+  return rows;
+}
+
+function escapeHtml(text) {
+  return String(text == null ? '' : text).replace(/[&<>"']/g, ch => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[ch]);
+}
+
+function attachmentPreviewBody(node) {
+  const dataUrl = node.dataUrl || '';
+  if (isCsvAttachment(node)) {
+    const rows = parseCsvRows(dataUrlText(dataUrl));
+    const maxRows = 1000;
+    const shown = rows.slice(0, maxRows);
+    const maxCols = shown.reduce((n, row) => Math.max(n, row.length), 0);
+    const header = shown[0] || [];
+    const body = shown.slice(1);
+    const tableHead = '<tr>' + Array.from({ length: maxCols }, (_, i) => '<th>' + escapeHtml(header[i] || '') + '</th>').join('') + '</tr>';
+    const tableBody = body.map(row => '<tr>' + Array.from({ length: maxCols }, (_, i) => '<td>' + escapeHtml(row[i] || '') + '</td>').join('') + '</tr>').join('');
+    const note = rows.length > maxRows ? '<div class="note">Showing first ' + maxRows + ' rows of ' + rows.length + '.</div>' : '';
+    return note + '<div class="table-wrap"><table><thead>' + tableHead + '</thead><tbody>' + tableBody + '</tbody></table></div>';
+  }
+  if (isPdfAttachment(node)) {
+    return '<iframe class="pdf-preview" src="' + escapeHtml(dataUrl) + '" title="' + escapeHtml(node.fileName || 'PDF preview') + '"></iframe>';
+  }
+  return '<div class="image-wrap"><img src="' + escapeHtml(dataUrl) + '" alt="' + escapeHtml(node.fileName || 'Attachment preview') + '"></div>';
+}
+
+function openAttachmentPreview(node) {
+  const win = window.open('', '_blank');
+  if (!win) return;
+  win.opener = null;
+
+  const title = node.fileName || 'Attachment preview';
+  const downloadName = node.fileName || 'download';
+  win.document.open();
+  win.document.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escapeHtml(title)}</title>
+<style>
+body{margin:0;font-family:Inter,Arial,sans-serif;background:#f6f7f9;color:#171a1f}
+.preview-bar{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:16px;min-height:52px;padding:8px 14px;background:#111827;color:#f7fafc;box-shadow:0 1px 10px rgba(0,0,0,0.18)}
+.preview-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:600}
+.download-btn{flex-shrink:0;border:1px solid rgba(255,255,255,0.28);border-radius:7px;padding:7px 12px;color:#fff;text-decoration:none;font-size:13px;font-weight:600;background:rgba(255,255,255,0.12)}
+.download-btn:hover{background:rgba(255,255,255,0.2)}
+.preview-content{padding:18px}
+.image-wrap{min-height:calc(100vh - 88px);display:flex;align-items:center;justify-content:center}
+.image-wrap img{max-width:100%;max-height:calc(100vh - 100px);object-fit:contain;box-shadow:0 12px 40px rgba(0,0,0,0.18)}
+.pdf-preview{display:block;width:100%;height:calc(100vh - 52px);border:0;background:#fff}
+.note{margin:0 0 12px;color:#5a6472;font-size:13px}
+.table-wrap{overflow:auto;border:1px solid #d8dde5;background:#fff}
+table{border-collapse:collapse;min-width:100%;font-size:13px}
+th,td{border:1px solid #e1e5eb;padding:6px 8px;text-align:left;vertical-align:top;white-space:pre-wrap}
+th{position:sticky;top:52px;background:#eef2f6;font-weight:600}
+</style>
+</head>
+<body>
+<div class="preview-bar">
+  <div class="preview-title">${escapeHtml(title)}</div>
+  <a class="download-btn" href="${escapeHtml(node.dataUrl || '')}" download="${escapeHtml(downloadName)}">Download</a>
+</div>
+<main class="preview-content">${attachmentPreviewBody(node)}</main>
+</body>
+</html>`);
+  win.document.close();
+}
+
 function linkDomain(text) {
   if (!text) return null;
   const t = text.trim();
@@ -425,7 +609,15 @@ function renderNodeRow(el, row) {
     const a = document.createElement('a');
     a.className = 'label label-flex sub-attach';
     a.href = node.dataUrl;
-    a.download = node.fileName || 'download';
+    if (isPreviewableAttachment(node)) {
+      a.addEventListener('click', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        openAttachmentPreview(node);
+      });
+    } else {
+      a.download = node.fileName || 'download';
+    }
     a.textContent = '📎 ' + (node.fileName || 'attachment');
     a.title = node.fileName || 'attachment';
     a.addEventListener('click', e => e.stopPropagation());
