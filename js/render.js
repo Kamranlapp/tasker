@@ -198,14 +198,18 @@ function isCsvAttachment(node) {
   return ext === 'csv' || mime === 'text/csv' || mime === 'application/csv';
 }
 
-function isPreviewableAttachment(node) {
-  const mime = attachmentMimeType(node);
-  if (mime === 'application/pdf') return true;
-  if (/^image\/(png|jpe?g|gif|webp|bmp|avif)$/i.test(mime)) return true;
-  if (isCsvAttachment(node)) return true;
+function isPdfAttachment(node) {
+  return attachmentMimeType(node) === 'application/pdf' || attachmentExtension(node) === 'pdf';
+}
 
+function isImageAttachment(node) {
+  const mime = attachmentMimeType(node);
   const ext = attachmentExtension(node);
-  return ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'avif', 'csv'].includes(ext);
+  return /^image\/(png|jpe?g|gif|webp|bmp|avif)$/i.test(mime) || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'avif'].includes(ext);
+}
+
+function isPreviewableAttachment(node) {
+  return isPdfAttachment(node) || isImageAttachment(node) || isCsvAttachment(node);
 }
 
 function dataUrlText(dataUrl) {
@@ -297,22 +301,33 @@ function escapeHtml(text) {
   })[ch]);
 }
 
-function openCsvPreview(node) {
+function attachmentPreviewBody(node) {
+  const dataUrl = node.dataUrl || '';
+  if (isCsvAttachment(node)) {
+    const rows = parseCsvRows(dataUrlText(dataUrl));
+    const maxRows = 1000;
+    const shown = rows.slice(0, maxRows);
+    const maxCols = shown.reduce((n, row) => Math.max(n, row.length), 0);
+    const header = shown[0] || [];
+    const body = shown.slice(1);
+    const tableHead = '<tr>' + Array.from({ length: maxCols }, (_, i) => '<th>' + escapeHtml(header[i] || '') + '</th>').join('') + '</tr>';
+    const tableBody = body.map(row => '<tr>' + Array.from({ length: maxCols }, (_, i) => '<td>' + escapeHtml(row[i] || '') + '</td>').join('') + '</tr>').join('');
+    const note = rows.length > maxRows ? '<div class="note">Showing first ' + maxRows + ' rows of ' + rows.length + '.</div>' : '';
+    return note + '<div class="table-wrap"><table><thead>' + tableHead + '</thead><tbody>' + tableBody + '</tbody></table></div>';
+  }
+  if (isPdfAttachment(node)) {
+    return '<iframe class="pdf-preview" src="' + escapeHtml(dataUrl) + '" title="' + escapeHtml(node.fileName || 'PDF preview') + '"></iframe>';
+  }
+  return '<div class="image-wrap"><img src="' + escapeHtml(dataUrl) + '" alt="' + escapeHtml(node.fileName || 'Attachment preview') + '"></div>';
+}
+
+function openAttachmentPreview(node) {
   const win = window.open('', '_blank');
   if (!win) return;
   win.opener = null;
 
-  const rows = parseCsvRows(dataUrlText(node.dataUrl));
-  const maxRows = 1000;
-  const shown = rows.slice(0, maxRows);
-  const maxCols = shown.reduce((n, row) => Math.max(n, row.length), 0);
-  const header = shown[0] || [];
-  const body = shown.slice(1);
-  const title = node.fileName || 'CSV preview';
-  const tableHead = '<tr>' + Array.from({ length: maxCols }, (_, i) => '<th>' + escapeHtml(header[i] || '') + '</th>').join('') + '</tr>';
-  const tableBody = body.map(row => '<tr>' + Array.from({ length: maxCols }, (_, i) => '<td>' + escapeHtml(row[i] || '') + '</td>').join('') + '</tr>').join('');
-  const note = rows.length > maxRows ? '<div class="note">Showing first ' + maxRows + ' rows of ' + rows.length + '.</div>' : '';
-
+  const title = node.fileName || 'Attachment preview';
+  const downloadName = node.fileName || 'download';
   win.document.open();
   win.document.write(`<!DOCTYPE html>
 <html lang="en">
@@ -321,19 +336,28 @@ function openCsvPreview(node) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${escapeHtml(title)}</title>
 <style>
-body{margin:0;padding:24px;font-family:Inter,Arial,sans-serif;background:#f6f7f9;color:#171a1f}
-h1{margin:0 0 16px;font-size:18px;font-weight:600}
+body{margin:0;font-family:Inter,Arial,sans-serif;background:#f6f7f9;color:#171a1f}
+.preview-bar{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:16px;min-height:52px;padding:8px 14px;background:#111827;color:#f7fafc;box-shadow:0 1px 10px rgba(0,0,0,0.18)}
+.preview-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:600}
+.download-btn{flex-shrink:0;border:1px solid rgba(255,255,255,0.28);border-radius:7px;padding:7px 12px;color:#fff;text-decoration:none;font-size:13px;font-weight:600;background:rgba(255,255,255,0.12)}
+.download-btn:hover{background:rgba(255,255,255,0.2)}
+.preview-content{padding:18px}
+.image-wrap{min-height:calc(100vh - 88px);display:flex;align-items:center;justify-content:center}
+.image-wrap img{max-width:100%;max-height:calc(100vh - 100px);object-fit:contain;box-shadow:0 12px 40px rgba(0,0,0,0.18)}
+.pdf-preview{display:block;width:100%;height:calc(100vh - 52px);border:0;background:#fff}
 .note{margin:0 0 12px;color:#5a6472;font-size:13px}
 .table-wrap{overflow:auto;border:1px solid #d8dde5;background:#fff}
 table{border-collapse:collapse;min-width:100%;font-size:13px}
 th,td{border:1px solid #e1e5eb;padding:6px 8px;text-align:left;vertical-align:top;white-space:pre-wrap}
-th{position:sticky;top:0;background:#eef2f6;font-weight:600}
+th{position:sticky;top:52px;background:#eef2f6;font-weight:600}
 </style>
 </head>
 <body>
-<h1>${escapeHtml(title)}</h1>
-${note}
-<div class="table-wrap"><table><thead>${tableHead}</thead><tbody>${tableBody}</tbody></table></div>
+<div class="preview-bar">
+  <div class="preview-title">${escapeHtml(title)}</div>
+  <a class="download-btn" href="${escapeHtml(node.dataUrl || '')}" download="${escapeHtml(downloadName)}">Download</a>
+</div>
+<main class="preview-content">${attachmentPreviewBody(node)}</main>
 </body>
 </html>`);
   win.document.close();
@@ -585,15 +609,12 @@ function renderNodeRow(el, row) {
     const a = document.createElement('a');
     a.className = 'label label-flex sub-attach';
     a.href = node.dataUrl;
-    if (isCsvAttachment(node)) {
+    if (isPreviewableAttachment(node)) {
       a.addEventListener('click', e => {
         e.preventDefault();
         e.stopPropagation();
-        openCsvPreview(node);
+        openAttachmentPreview(node);
       });
-    } else if (isPreviewableAttachment(node)) {
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
     } else {
       a.download = node.fileName || 'download';
     }
