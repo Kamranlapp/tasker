@@ -342,11 +342,20 @@ function openAttachmentPreview(node) {
   overlay.setAttribute('aria-label', title);
   overlay.innerHTML = `
     <button class="attachment-preview-close" type="button" aria-label="Close preview">×</button>
-    <a class="attachment-preview-download" href="${escapeHtml(node.dataUrl || '')}" download="${escapeHtml(downloadName)}">Download</a>
-    <div class="attachment-preview-content">${attachmentPreviewBody(node)}</div>
+    <div class="attachment-preview-actions">
+      <button class="attachment-preview-size" type="button">Full</button>
+      <a class="attachment-preview-download" href="${escapeHtml(node.dataUrl || '')}" download="${escapeHtml(downloadName)}">Download</a>
+    </div>
+    <div class="attachment-preview-stage">
+      <div class="attachment-preview-content">${attachmentPreviewBody(node)}</div>
+    </div>
   `;
   overlay.addEventListener('click', e => { if (e.target === overlay) closeAttachmentPreview(); });
   overlay.querySelector('.attachment-preview-close').addEventListener('click', closeAttachmentPreview);
+  overlay.querySelector('.attachment-preview-size').addEventListener('click', e => {
+    const full = overlay.classList.toggle('is-full');
+    e.currentTarget.textContent = full ? 'Fit' : 'Full';
+  });
   document.body.appendChild(overlay);
   document.addEventListener('keydown', attachmentPreviewKeydown);
 }
