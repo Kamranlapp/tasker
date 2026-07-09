@@ -179,6 +179,166 @@ function attachFilesToTask(files, taskId) {
   });
 }
 
+function attachmentMimeType(node) {
+  const dataUrl = node && node.dataUrl;
+  if (typeof dataUrl !== 'string') return '';
+  const m = dataUrl.match(/^data:([^;,]+)/i);
+  return m ? m[1].toLowerCase() : '';
+}
+
+function attachmentExtension(node) {
+  const fileName = (node && (node.fileName || node.text) || '').toLowerCase();
+  const m = fileName.match(/\.([a-z0-9]+)$/i);
+  return m ? m[1] : '';
+}
+
+function isCsvAttachment(node) {
+  const mime = attachmentMimeType(node);
+  const ext = attachmentExtension(node);
+  return ext === 'csv' || mime === 'text/csv' || mime === 'application/csv';
+}
+
+function isPreviewableAttachment(node) {
+  const mime = attachmentMimeType(node);
+  if (mime === 'application/pdf') return true;
+  if (/^image\/(png|jpe?g|gif|webp|bmp|avif)$/i.test(mime)) return true;
+  if (isCsvAttachment(node)) return true;
+
+  const ext = attachmentExtension(node);
+  return ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'avif', 'csv'].includes(ext);
+}
+
+function dataUrlText(dataUrl) {
+  if (typeof dataUrl !== 'string') return '';
+  const comma = dataUrl.indexOf(',');
+  if (comma === -1) return '';
+  const meta = dataUrl.slice(0, comma);
+  const body = dataUrl.slice(comma + 1);
+  try {
+    if (/;base64/i.test(meta)) {
+      const bin = atob(body);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return new TextDecoder('utf-8').decode(bytes).replace(/^\uFEFF/, '');
+    }
+    return decodeURIComponent(body.replace(/\+/g, '%20')).replace(/^\uFEFF/, '');
+  } catch {
+    return '';
+  }
+}
+
+function csvDelimiter(text) {
+  const counts = { ',': 0, ';': 0, '\t': 0 };
+  let quoted = false;
+  let lines = 0;
+  for (let i = 0; i < text.length && lines < 5; i++) {
+    const ch = text[i];
+    if (quoted) {
+      if (ch === '"' && text[i + 1] === '"') i++;
+      else if (ch === '"') quoted = false;
+    } else if (ch === '"') {
+      quoted = true;
+    } else if (ch === '\n') {
+      lines++;
+    } else if (Object.prototype.hasOwnProperty.call(counts, ch)) {
+      counts[ch]++;
+    }
+  }
+  return Object.keys(counts).reduce((best, ch) => counts[ch] > counts[best] ? ch : best, ',');
+}
+
+function parseCsvRows(text) {
+  const rows = [];
+  let row = [];
+  let cell = '';
+  let quoted = false;
+  const delimiter = csvDelimiter(text);
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (quoted) {
+      if (ch === '"' && text[i + 1] === '"') {
+        cell += '"';
+        i++;
+      } else if (ch === '"') {
+        quoted = false;
+      } else {
+        cell += ch;
+      }
+    } else if (ch === '"') {
+      quoted = true;
+    } else if (ch === delimiter) {
+      row.push(cell);
+      cell = '';
+    } else if (ch === '\n') {
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = '';
+    } else if (ch !== '\r') {
+      cell += ch;
+    }
+  }
+
+  if (cell || row.length) {
+    row.push(cell);
+    rows.push(row);
+  }
+  return rows;
+}
+
+function escapeHtml(text) {
+  return String(text == null ? '' : text).replace(/[&<>"']/g, ch => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[ch]);
+}
+
+function openCsvPreview(node) {
+  const win = window.open('', '_blank');
+  if (!win) return;
+  win.opener = null;
+
+  const rows = parseCsvRows(dataUrlText(node.dataUrl));
+  const maxRows = 1000;
+  const shown = rows.slice(0, maxRows);
+  const maxCols = shown.reduce((n, row) => Math.max(n, row.length), 0);
+  const header = shown[0] || [];
+  const body = shown.slice(1);
+  const title = node.fileName || 'CSV preview';
+  const tableHead = '<tr>' + Array.from({ length: maxCols }, (_, i) => '<th>' + escapeHtml(header[i] || '') + '</th>').join('') + '</tr>';
+  const tableBody = body.map(row => '<tr>' + Array.from({ length: maxCols }, (_, i) => '<td>' + escapeHtml(row[i] || '') + '</td>').join('') + '</tr>').join('');
+  const note = rows.length > maxRows ? '<div class="note">Showing first ' + maxRows + ' rows of ' + rows.length + '.</div>' : '';
+
+  win.document.open();
+  win.document.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escapeHtml(title)}</title>
+<style>
+body{margin:0;padding:24px;font-family:Inter,Arial,sans-serif;background:#f6f7f9;color:#171a1f}
+h1{margin:0 0 16px;font-size:18px;font-weight:600}
+.note{margin:0 0 12px;color:#5a6472;font-size:13px}
+.table-wrap{overflow:auto;border:1px solid #d8dde5;background:#fff}
+table{border-collapse:collapse;min-width:100%;font-size:13px}
+th,td{border:1px solid #e1e5eb;padding:6px 8px;text-align:left;vertical-align:top;white-space:pre-wrap}
+th{position:sticky;top:0;background:#eef2f6;font-weight:600}
+</style>
+</head>
+<body>
+<h1>${escapeHtml(title)}</h1>
+${note}
+<div class="table-wrap"><table><thead>${tableHead}</thead><tbody>${tableBody}</tbody></table></div>
+</body>
+</html>`);
+  win.document.close();
+}
+
 function linkDomain(text) {
   if (!text) return null;
   const t = text.trim();
@@ -425,7 +585,18 @@ function renderNodeRow(el, row) {
     const a = document.createElement('a');
     a.className = 'label label-flex sub-attach';
     a.href = node.dataUrl;
-    a.download = node.fileName || 'download';
+    if (isCsvAttachment(node)) {
+      a.addEventListener('click', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        openCsvPreview(node);
+      });
+    } else if (isPreviewableAttachment(node)) {
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+    } else {
+      a.download = node.fileName || 'download';
+    }
     a.textContent = '📎 ' + (node.fileName || 'attachment');
     a.title = node.fileName || 'attachment';
     a.addEventListener('click', e => e.stopPropagation());
