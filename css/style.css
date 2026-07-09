@@ -73,7 +73,11 @@ html,body{width:100%;height:100%;background-color:var(--c-bg);overflow:hidden;fo
   padding:clamp(28px,7vw,88px);
   background:
     linear-gradient(90deg,rgba(7,38,44,0.34) 0%,rgba(7,38,44,0.05) 48%,rgba(7,38,44,0.08) 100%),
-    url('../images/login-gorilla-surf-hq.png') center/cover no-repeat;
+    url('../Login_Background@0.5x.webp') center/cover no-repeat;
+}
+#login-screen::before{
+  content:'';position:absolute;inset:0;
+  background:rgba(8,12,18,0.38);
 }
 #login-box{
   position:relative;
@@ -113,7 +117,7 @@ html,body{width:100%;height:100%;background-color:var(--c-bg);overflow:hidden;fo
   color:rgba(10,143,153,0.56);
   background:
     linear-gradient(105deg,rgba(39,201,207,0.4) 0%,rgba(96,221,204,0.3) 46%,rgba(0,116,131,0.44) 100%),
-    url('../images/login-gorilla-surf-hq.png') center/cover fixed no-repeat;
+    url('../Login_Background@0.5x.webp') center/cover fixed no-repeat;
   -webkit-background-clip:text;
   background-clip:text;
   -webkit-text-fill-color:rgba(10,143,153,0.5);
