@@ -312,55 +312,43 @@ function attachmentPreviewBody(node) {
     const body = shown.slice(1);
     const tableHead = '<tr>' + Array.from({ length: maxCols }, (_, i) => '<th>' + escapeHtml(header[i] || '') + '</th>').join('') + '</tr>';
     const tableBody = body.map(row => '<tr>' + Array.from({ length: maxCols }, (_, i) => '<td>' + escapeHtml(row[i] || '') + '</td>').join('') + '</tr>').join('');
-    const note = rows.length > maxRows ? '<div class="note">Showing first ' + maxRows + ' rows of ' + rows.length + '.</div>' : '';
-    return note + '<div class="table-wrap"><table><thead>' + tableHead + '</thead><tbody>' + tableBody + '</tbody></table></div>';
+    const note = rows.length > maxRows ? '<div class="apv-note">Showing first ' + maxRows + ' rows of ' + rows.length + '.</div>' : '';
+    return '<div class="apv-csv">' + note + '<div class="apv-table-wrap"><table><thead>' + tableHead + '</thead><tbody>' + tableBody + '</tbody></table></div></div>';
   }
   if (isPdfAttachment(node)) {
-    return '<iframe class="pdf-preview" src="' + escapeHtml(dataUrl) + '" title="' + escapeHtml(node.fileName || 'PDF preview') + '"></iframe>';
+    return '<iframe class="apv-pdf" src="' + escapeHtml(dataUrl) + '" title="' + escapeHtml(node.fileName || 'PDF preview') + '"></iframe>';
   }
-  return '<div class="image-wrap"><img src="' + escapeHtml(dataUrl) + '" alt="' + escapeHtml(node.fileName || 'Attachment preview') + '"></div>';
+  return '<div class="apv-image-wrap"><img src="' + escapeHtml(dataUrl) + '" alt="' + escapeHtml(node.fileName || 'Attachment preview') + '"></div>';
+}
+
+function closeAttachmentPreview() {
+  const overlay = document.querySelector('.attachment-preview-overlay');
+  if (overlay) overlay.remove();
+  document.removeEventListener('keydown', attachmentPreviewKeydown);
+}
+
+function attachmentPreviewKeydown(e) {
+  if (e.key === 'Escape') closeAttachmentPreview();
 }
 
 function openAttachmentPreview(node) {
-  const win = window.open('', '_blank');
-  if (!win) return;
-  win.opener = null;
-
   const title = node.fileName || 'Attachment preview';
   const downloadName = node.fileName || 'download';
-  win.document.open();
-  win.document.write(`<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>${escapeHtml(title)}</title>
-<style>
-body{margin:0;font-family:Inter,Arial,sans-serif;background:#f6f7f9;color:#171a1f}
-.preview-bar{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:16px;min-height:52px;padding:8px 14px;background:#111827;color:#f7fafc;box-shadow:0 1px 10px rgba(0,0,0,0.18)}
-.preview-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:600}
-.download-btn{flex-shrink:0;border:1px solid rgba(255,255,255,0.28);border-radius:7px;padding:7px 12px;color:#fff;text-decoration:none;font-size:13px;font-weight:600;background:rgba(255,255,255,0.12)}
-.download-btn:hover{background:rgba(255,255,255,0.2)}
-.preview-content{padding:18px}
-.image-wrap{min-height:calc(100vh - 88px);display:flex;align-items:center;justify-content:center}
-.image-wrap img{max-width:100%;max-height:calc(100vh - 100px);object-fit:contain;box-shadow:0 12px 40px rgba(0,0,0,0.18)}
-.pdf-preview{display:block;width:100%;height:calc(100vh - 52px);border:0;background:#fff}
-.note{margin:0 0 12px;color:#5a6472;font-size:13px}
-.table-wrap{overflow:auto;border:1px solid #d8dde5;background:#fff}
-table{border-collapse:collapse;min-width:100%;font-size:13px}
-th,td{border:1px solid #e1e5eb;padding:6px 8px;text-align:left;vertical-align:top;white-space:pre-wrap}
-th{position:sticky;top:52px;background:#eef2f6;font-weight:600}
-</style>
-</head>
-<body>
-<div class="preview-bar">
-  <div class="preview-title">${escapeHtml(title)}</div>
-  <a class="download-btn" href="${escapeHtml(node.dataUrl || '')}" download="${escapeHtml(downloadName)}">Download</a>
-</div>
-<main class="preview-content">${attachmentPreviewBody(node)}</main>
-</body>
-</html>`);
-  win.document.close();
+  closeAttachmentPreview();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'attachment-preview-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-label', title);
+  overlay.innerHTML = `
+    <button class="attachment-preview-close" type="button" aria-label="Close preview">×</button>
+    <a class="attachment-preview-download" href="${escapeHtml(node.dataUrl || '')}" download="${escapeHtml(downloadName)}">Download</a>
+    <div class="attachment-preview-content">${attachmentPreviewBody(node)}</div>
+  `;
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeAttachmentPreview(); });
+  overlay.querySelector('.attachment-preview-close').addEventListener('click', closeAttachmentPreview);
+  document.body.appendChild(overlay);
+  document.addEventListener('keydown', attachmentPreviewKeydown);
 }
 
 function linkDomain(text) {
