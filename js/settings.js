@@ -4,6 +4,7 @@ let allUsers = null;
 let newUserEmail = null;
 
 function openSettings() {
+  editingNotepadKey = activeNotepad;
   document.getElementById('settings-screen').classList.add('open');
   renderSettings();
 }
@@ -18,6 +19,7 @@ function renderSettings() {
   document.getElementById('seed-display').textContent = currentUser.email || currentUser.display_name || 'Google account';
   renderStatusList();
   renderThemePanel();
+  renderBackupPanel();
   renderAdminPanel();
 }
 
@@ -150,7 +152,7 @@ function renderThemePanel() {
   nbSel.appendChild(mkNbTab(null, '📋', 'Main'));
   notepads.forEach(np => nbSel.appendChild(mkNbTab(np.key, np.emoji || '📝', np.name || np.key)));
 
-  if (notepads.length < 2) {
+  if (userNotepadCount() < MAX_USER_NOTEPADS) {
     const addBtn = document.createElement('span');
     addBtn.className = 'settings-nb-add';
     addBtn.textContent = '+';
@@ -164,6 +166,7 @@ function renderThemePanel() {
   if (editingNotepadKey !== null && editingNotepadKey !== ALL_KEY) {
     const np = notepads.find(n => n.key === editingNotepadKey);
     if (np) {
+      const permanent = isPermanentNotepad(np.key);
       const editRow = document.createElement('div');
       editRow.className = 'notepad-edit-row';
 
@@ -171,6 +174,8 @@ function renderThemePanel() {
       emojiInp.className = 'notepad-emoji-input';
       emojiInp.value = np.emoji || '📝';
       emojiInp.maxLength = 2;
+      emojiInp.disabled = permanent;
+      if (permanent) emojiInp.title = 'Built-in notebook icon';
       emojiInp.addEventListener('change', () => { np.emoji = emojiInp.value; markDirtySettings(); renderThemePanel(); });
       editRow.appendChild(emojiInp);
 
@@ -178,6 +183,8 @@ function renderThemePanel() {
       nameInp.className = 'notepad-name-input';
       nameInp.value = np.name || '';
       nameInp.placeholder = 'Name';
+      nameInp.disabled = permanent;
+      if (permanent) nameInp.title = 'Built-in notebook name';
       nameInp.addEventListener('change', () => { np.name = nameInp.value; markDirtySettings(); renderThemePanel(); });
       editRow.appendChild(nameInp);
 
@@ -193,12 +200,14 @@ function renderThemePanel() {
       });
       editRow.appendChild(copyBtn);
 
-      const delBtn = document.createElement('button');
-      delBtn.className = 'notepad-del-btn';
-      delBtn.textContent = '×';
-      delBtn.title = 'Remove notebook';
-      delBtn.addEventListener('click', () => removeNotepad(np.key));
-      editRow.appendChild(delBtn);
+      if (!permanent) {
+        const delBtn = document.createElement('button');
+        delBtn.className = 'notepad-del-btn';
+        delBtn.textContent = '×';
+        delBtn.title = 'Remove notebook';
+        delBtn.addEventListener('click', () => removeNotepad(np.key));
+        editRow.appendChild(delBtn);
+      }
 
       panel.appendChild(editRow);
     }
@@ -375,7 +384,7 @@ function renderThemePanel() {
 }
 
 function addNotepad() {
-  if (notepads.length >= 2) return; // max 2 extra (3 total including main)
+  if (userNotepadCount() >= MAX_USER_NOTEPADS) return;
   let n = 1;
   while (notepads.some(np => np.key === 'nb' + n)) n++;
   const key = 'nb' + n;
@@ -386,10 +395,12 @@ function addNotepad() {
 }
 
 function removeNotepad(key) {
+  if (isPermanentNotepad(key)) return;
   showDeleteNotepadModal(key);
 }
 
 function showDeleteNotepadModal(key) {
+  if (isPermanentNotepad(key)) return;
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
 
@@ -635,7 +646,7 @@ async function createNewUser() {
       { key: 'done', label: 'Done', icon: '✅' },
       { key: 'info', label: 'Info', icon: 'ℹ️' }
     ];
-    await sb.post('settings', { user_id: uid, statuses: defaultStatuses, theme: {}, notepads: [] });
+    await sb.post('settings', { user_id: uid, statuses: defaultStatuses, theme: {}, notepads: [makeProjectsNotepad(defaultStatuses)] });
     await sb.post('ui_state', { user_id: uid, collapsed_nodes: {}, collapsed_groups: {}, todo_collapsed: {} });
     await sb.post('trees', { user_id: uid, nodes: [], updated_at: new Date().toISOString() });
     newUserEmail = email;

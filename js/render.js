@@ -372,6 +372,41 @@ function linkDomain(text) {
   } catch { return null; }
 }
 
+function addProject() {
+  if (!isProjectsNotepad()) return;
+  pushUndo();
+  viewMode = 'acc';
+  const project = {
+    id: nextId++,
+    level: LEVEL_ACCOUNT,
+    text: '',
+    status: '',
+    collapsed: false,
+    collapsedGroups: {}
+  };
+  nodes.push(project);
+  focusedNodeId = project.id;
+  editingNodeId = project.id;
+  markDirtyTree();
+  render();
+}
+
+function appendProjectAddRow(gutter, content) {
+  const gl = mk('div');
+  gl.className = 'gutter-line project-add-gutter';
+  gutter.appendChild(gl);
+
+  const row = mk('div');
+  row.className = 'row project-add-row';
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'project-add-btn';
+  btn.textContent = '+ Project';
+  btn.addEventListener('click', addProject);
+  row.appendChild(btn);
+  content.appendChild(row);
+}
+
 // ── Main render ────────────────────────────────────────────────
 function render() {
   const gutter = document.getElementById('gutter');
@@ -380,6 +415,7 @@ function render() {
   if (!gutter || !content) return;
 
   editor.classList.remove('notepad-mode');
+  editor.classList.toggle('projects-mode', isProjectsNotepad());
   const rows = searchQuery ? buildSearchRows() : (viewMode === 'status' ? buildStatusRows() : buildRows());
   gutter.innerHTML = '';
   content.innerHTML = '';
@@ -400,6 +436,8 @@ function render() {
     }
     content.appendChild(el);
   });
+
+  if (isProjectsNotepad() && !searchQuery) appendProjectAddRow(gutter, content);
 
   const focused = content.querySelector('.row.focused');
   const searchHasFocus = document.activeElement === document.getElementById('search-input');
@@ -477,10 +515,11 @@ function renderStatusGroupRow(el, row) {
   tog.className = 'toggle ' + (row.collapsed ? 'closed' : 'open');
   tog.textContent = '▾';
   const toggleSG = () => {
-    const wn = row.weekNode;
-    if (!wn.collapsedStatusGroups) wn.collapsedStatusGroups = {};
-    wn.collapsedStatusGroups[row.status] = !wn.collapsedStatusGroups[row.status];
-    markDirtyUI(); render();
+    const owner = row.statusState || row.weekNode;
+    if (!owner.collapsedStatusGroups) owner.collapsedStatusGroups = {};
+    owner.collapsedStatusGroups[row.status] = !owner.collapsedStatusGroups[row.status];
+    row.settingsBacked ? markDirtySettings() : markDirtyUI();
+    render();
   };
   tog.addEventListener('click', e => { e.stopPropagation(); toggleSG(); });
   el.appendChild(tog);
@@ -506,6 +545,7 @@ function renderStatusGroupRow(el, row) {
 
 // ── Status rows (Status view mode for main tree) ───────────────
 function buildStatusRows() {
+  if (isProjectsNotepad()) return buildProjectStatusRows();
   const rows = [];
   let i = 0;
   while (i < nodes.length) {
@@ -567,6 +607,62 @@ function buildStatusRows() {
   return rows;
 }
 
+function buildProjectStatusRows() {
+  const rows = [];
+  const byStatus = {};
+  let i = 0;
+
+  while (i < nodes.length) {
+    const project = nodes[i];
+    if (project.level !== LEVEL_ACCOUNT) { i++; continue; }
+    const projectIdx = i;
+    const tasksByStatus = {};
+    i++;
+    while (i < nodes.length && nodes[i].level > LEVEL_ACCOUNT) {
+      if (nodes[i].level === LEVEL_TASK) {
+        const status = nodes[i].status || 'todo';
+        const task = { node: nodes[i], nodeIdx: i, subs: [] };
+        i++;
+        while (i < nodes.length && nodes[i].level === LEVEL_SUB) {
+          task.subs.push({ node: nodes[i], nodeIdx: i });
+          i++;
+        }
+        if (!tasksByStatus[status]) tasksByStatus[status] = [];
+        tasksByStatus[status].push(task);
+      } else {
+        i++;
+      }
+    }
+    Object.entries(tasksByStatus).forEach(([status, tasks]) => {
+      if (!byStatus[status]) byStatus[status] = [];
+      byStatus[status].push({ project, projectIdx, tasks });
+    });
+  }
+
+  const np = notepads.find(n => n.key === PROJECTS_NOTEPAD_KEY);
+  if (np && !np.collapsedStatusGroups) np.collapsedStatusGroups = {};
+  displayOrder().forEach(status => {
+    const projects = byStatus[status];
+    if (!projects?.length) return;
+    const collapsed = !!np?.collapsedStatusGroups?.[status];
+    rows.push({
+      kind: 'status-group', status, collapsed,
+      count: projects.reduce((sum, p) => sum + p.tasks.length, 0),
+      statusState: np, settingsBacked: true
+    });
+    if (collapsed) return;
+    projects.forEach(({ project, projectIdx, tasks }) => {
+      rows.push({ kind: 'node', node: project, nodeIdx: projectIdx, extraIndent: 1 });
+      if (project.collapsed) return;
+      tasks.forEach(({ node, nodeIdx, subs }) => {
+        rows.push({ kind: 'node', node, nodeIdx, extraIndent: 1 });
+        if (!node.collapsed) subs.forEach(sub => rows.push({ kind: 'node', node: sub.node, nodeIdx: sub.nodeIdx, extraIndent: 1 }));
+      });
+    });
+  });
+  return rows;
+}
+
 // ── Node row ───────────────────────────────────────────────────
 function renderNodeRow(el, row) {
   const node = row.node;
@@ -575,9 +671,12 @@ function renderNodeRow(el, row) {
   const isEditing = node.id === editingNodeId;
 
   el.className = 'row level-' + node.level + (isFocused ? ' focused' : '') + (node.expanded || (node.text && node.text.includes('\n')) ? ' expanded' : '');
+  el.dataset.nodeId = node.id;
+  if (isProjectsNotepad() && row.extraIndent) el.classList.add('project-status-child');
   el.tabIndex = 0;
 
-  const indent = node.level + (row.extraIndent || 0);
+  const baseIndent = isProjectsNotepad() ? Math.max(0, node.level - LEVEL_ACCOUNT) : node.level;
+  const indent = baseIndent + (row.extraIndent || 0);
   for (let d = 0; d < indent; d++) el.appendChild(mk('span')).className = 'indent';
   if (node.level === LEVEL_TASK || node.level === LEVEL_SUB) {
     el.appendChild(mk('span', 'width:15px;display:inline-block;flex-shrink:0;'));
@@ -1199,7 +1298,7 @@ function switchNotebook(key) {
     const _si = document.getElementById('search-input');
     if (_si) _si.value = '';
     applyActiveTheme();
-    checkAndCreateCurrentWeek();
+    if (!isProjectsNotepad()) checkAndCreateCurrentWeek();
     render();
     // Fade in: set opacity 0 instantly (no transition), then let transition animate to 1
     const mc2 = document.getElementById('content');
@@ -1425,6 +1524,60 @@ function initSearchBar() {
 }
 
 // ── To-Do panel ────────────────────────────────────────────────
+function revealTodoInMain(taskId) {
+  const taskIdx = nodes.findIndex(n => n.id === taskId && n.level === LEVEL_TASK);
+  if (taskIdx === -1) return;
+
+  if (searchQuery) {
+    const inp = document.getElementById('search-input');
+    if (inp) inp.value = '';
+    searchQuery = '';
+    if (preSearchCollapsed !== null) {
+      _restoreNodeCollapse(preSearchCollapsed);
+      preSearchCollapsed = null;
+    }
+  }
+
+  viewMode = 'acc';
+  let parentLevel = LEVEL_ACCOUNT;
+  let account = null;
+  for (let i = taskIdx - 1; i >= 0 && parentLevel >= LEVEL_YEAR; i--) {
+    const node = nodes[i];
+    if (node.level !== parentLevel) continue;
+    node.collapsed = false;
+    if (node.level === LEVEL_ACCOUNT) account = node;
+    parentLevel--;
+  }
+
+  if (account) {
+    if (!account.collapsedGroups) account.collapsedGroups = {};
+    displayOrder().forEach(status => { account.collapsedGroups[status] = status !== 'todo'; });
+    account.collapsedGroups.todo = false;
+  }
+
+  focusedNodeId = taskId;
+  editingNodeId = null;
+  dismissPicker();
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.add('mobile-view-tree');
+    document.body.classList.remove('mobile-view-todo');
+    document.getElementById('mt-tree')?.classList.add('active');
+    document.getElementById('mt-todo')?.classList.remove('active');
+  }
+  markDirtyUI();
+  render();
+
+  requestAnimationFrame(() => {
+    const target = document.querySelector(`#content .row[data-node-id="${taskId}"]`);
+    target?.focus({ preventScroll: true });
+    target?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    if (target) {
+      target.classList.add('todo-reveal-flash');
+      target.addEventListener('animationend', () => target.classList.remove('todo-reveal-flash'), { once: true });
+    }
+  });
+}
+
 function buildTodoPanel() {
   initSearchBar();
   buildRightTabs();
@@ -1432,8 +1585,10 @@ function buildTodoPanel() {
   const prevScrollTop = el.scrollTop;
   el.innerHTML = '';
 
+  const projectsMode = isProjectsNotepad();
   const weeks = [];
-  let curWeek = null, curAcc = null, curItems = [];
+  let curWeek = projectsMode ? { label: 'Projects', accs: [] } : null;
+  let curAcc = null, curItems = [];
 
   nodes.forEach(n => {
     if (n.level === LEVEL_WEEK) {
@@ -1460,14 +1615,17 @@ function buildTodoPanel() {
     return;
   }
 
-  const current = withTodos[withTodos.length - 1];
-  const previous = withTodos.length > 1 ? withTodos[withTodos.length - 2] : null;
-  const older = withTodos.length > 2 ? withTodos.slice(0, withTodos.length - 2) : [];
-
   const sections = [];
-  if (older.length) sections.push({ label: 'Older', weeks: older, key: 'sec_older' });
-  if (previous) sections.push({ label: 'Previous week', weeks: [previous], key: 'sec_prev' });
-  sections.push({ label: 'Current week', weeks: [current], key: 'sec_cur' });
+  if (projectsMode) {
+    sections.push({ label: 'Projects', weeks: withTodos, key: 'sec_projects' });
+  } else {
+    const current = withTodos[withTodos.length - 1];
+    const previous = withTodos.length > 1 ? withTodos[withTodos.length - 2] : null;
+    const older = withTodos.length > 2 ? withTodos.slice(0, withTodos.length - 2) : [];
+    if (older.length) sections.push({ label: 'Older', weeks: older, key: 'sec_older' });
+    if (previous) sections.push({ label: 'Previous week', weeks: [previous], key: 'sec_prev' });
+    sections.push({ label: 'Current week', weeks: [current], key: 'sec_cur' });
+  }
 
   sections.forEach((sec, si) => {
     const isCol = !!todoCollapsed[sec.key];
@@ -1509,7 +1667,7 @@ function buildTodoPanel() {
         const hdr = document.createElement('div');
         hdr.className = 'todo-acc-header';
         const is = theme.indentSize || 18;
-        hdr.style.paddingLeft = (3 * is - 10) + 'px';
+        hdr.style.paddingLeft = projectsMode ? '8px' : (3 * is - 10) + 'px';
 
         const tog = document.createElement('span');
         tog.className = 'todo-acc-toggle ' + (isColA ? 'closed' : 'open');
@@ -1535,7 +1693,7 @@ function buildTodoPanel() {
           const row = document.createElement('div');
           row.className = 'todo-item';
           const is = theme.indentSize || 18;
-          row.style.paddingLeft = (4 * is - 10 + 15) + 'px';
+          row.style.paddingLeft = projectsMode ? (is + 23) + 'px' : (4 * is - 10 + 15) + 'px';
 
           const txt = document.createElement('span');
           txt.className = 'todo-item-text';
@@ -1550,6 +1708,7 @@ function buildTodoPanel() {
             e.preventDefault();
             picker?.nodeId === t.id ? advancePicker() : openPicker(t.id, anchor, false);
           });
+          row.addEventListener('click', () => revealTodoInMain(t.id));
           el.appendChild(row);
         });
       });

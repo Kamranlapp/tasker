@@ -531,6 +531,7 @@ function migrateLegacyCalendarLevels() {
 }
 
 function checkAndCreateCurrentWeek() {
+  if (isProjectsNotepad()) return;
   normalizeCalendar();
   const now = getCETDate();
   const { week, year } = getCalendarWeek(now);
