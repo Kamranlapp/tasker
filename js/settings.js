@@ -4,6 +4,7 @@ let allUsers = null;
 let newUserEmail = null;
 
 function openSettings() {
+  editingNotepadKey = activeNotepad;
   document.getElementById('settings-screen').classList.add('open');
   renderSettings();
 }
