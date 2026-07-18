@@ -461,8 +461,9 @@ function syncGutterHeights() {
 
 // ── Group row ──────────────────────────────────────────────────
 function renderGroupRow(el, row) {
-  el.className = 'row row-group';
-  for (let d = 0; d < LEVEL_TASK; d++) el.appendChild(mk('span')).className = 'indent';
+  el.className = 'row row-group' + (isProjectsNotepad() ? ' project-account-group' : '');
+  const indent = isProjectsNotepad() ? 1 : LEVEL_TASK;
+  for (let d = 0; d < indent; d++) el.appendChild(mk('span')).className = 'indent';
 
   const tog = mk('span');
   tog.className = 'toggle ' + (row.collapsed ? 'closed' : 'open');
@@ -508,8 +509,9 @@ function renderGroupRow(el, row) {
 
 // ── Status-group row (Status mode only) ───────────────────────
 function renderStatusGroupRow(el, row) {
-  el.className = 'row row-group';
-  for (let d = 0; d < LEVEL_ACCOUNT; d++) el.appendChild(mk('span')).className = 'indent';
+  el.className = 'row row-group' + (isProjectsNotepad() ? ' project-status-group' : '');
+  const indent = isProjectsNotepad() ? 0 : LEVEL_ACCOUNT;
+  for (let d = 0; d < indent; d++) el.appendChild(mk('span')).className = 'indent';
 
   const tog = mk('span');
   tog.className = 'toggle ' + (row.collapsed ? 'closed' : 'open');
@@ -773,7 +775,9 @@ function renderNodeRow(el, row) {
     const dh = mk('span');
     dh.className = 'del-hint';
     dh.textContent = '⌫';
-    dh.title = node.level === LEVEL_ACCOUNT ? 'Delete account and entries' : node.level === LEVEL_TASK ? 'Delete entry' : 'Delete sub-entry';
+    dh.title = node.level === LEVEL_ACCOUNT
+      ? (isProjectsNotepad() ? 'Delete project and entries' : 'Delete account and entries')
+      : node.level === LEVEL_TASK ? 'Delete entry' : 'Delete sub-entry';
     dh.addEventListener('click', e => {
       e.stopPropagation();
       pushUndo();
@@ -836,12 +840,14 @@ function renderEditInput(el, node, ni) {
   const multiline = node.level === LEVEL_TASK || node.level === LEVEL_SUB;
   const inp = document.createElement(multiline ? 'textarea' : 'input');
   inp.className = 'row-edit' + (multiline ? ' row-edit-multi' : '');
-  if (!multiline) inp.placeholder = node.level === LEVEL_ACCOUNT ? 'account name…' : 'new entry…';
+  if (!multiline) inp.placeholder = node.level === LEVEL_ACCOUNT
+    ? (isProjectsNotepad() ? 'project name…' : 'account name…')
+    : 'new entry…';
   inp.value = node.text || '';
 
   // Account name autocomplete — live names only, Tab inserts first match
   let accNames = [];
-  if (node.level === LEVEL_ACCOUNT) {
+  if (node.level === LEVEL_ACCOUNT && !isProjectsNotepad()) {
     accNames = [...new Set(
       nodes.filter(n => n.level === LEVEL_ACCOUNT && n.text && n.id !== node.id).map(n => n.text)
     )];
@@ -1591,7 +1597,7 @@ function buildTodoPanel() {
   let curAcc = null, curItems = [];
 
   nodes.forEach(n => {
-    if (n.level === LEVEL_WEEK) {
+    if (!projectsMode && n.level === LEVEL_WEEK) {
       if (curWeek) { if (curAcc && curItems.length) curWeek.accs.push({ acc: curAcc, items: [...curItems] }); weeks.push(curWeek); }
       curWeek = { label: n.text, accs: [] }; curAcc = null; curItems = [];
     }

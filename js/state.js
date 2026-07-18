@@ -12,6 +12,11 @@ const LEVEL_ACCOUNT = 4;
 const LEVEL_TASK = 5;
 const LEVEL_SUB = 6;
 
+const PROJECTS_NOTEPAD_KEY = 'projects';
+const PROJECTS_NOTEPAD_NAME = 'Projects';
+const PROJECTS_NOTEPAD_EMOJI = '⌛️';
+const MAX_USER_NOTEPADS = 2;
+
 const FONT_OPTIONS = [
   { label: 'Menlo / Mono (default)', value: "'Menlo','Monaco','Courier New',monospace" },
   { label: 'JetBrains Mono', value: "'JetBrains Mono',monospace" },
