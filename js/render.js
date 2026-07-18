@@ -673,6 +673,7 @@ function renderNodeRow(el, row) {
   const isEditing = node.id === editingNodeId;
 
   el.className = 'row level-' + node.level + (isFocused ? ' focused' : '') + (node.expanded || (node.text && node.text.includes('\n')) ? ' expanded' : '');
+  el.dataset.nodeId = node.id;
   if (isProjectsNotepad() && row.extraIndent) el.classList.add('project-status-child');
   el.tabIndex = 0;
 
@@ -1529,6 +1530,56 @@ function initSearchBar() {
 }
 
 // ── To-Do panel ────────────────────────────────────────────────
+function revealTodoInMain(taskId) {
+  const taskIdx = nodes.findIndex(n => n.id === taskId && n.level === LEVEL_TASK);
+  if (taskIdx === -1) return;
+
+  if (searchQuery) {
+    const inp = document.getElementById('search-input');
+    if (inp) inp.value = '';
+    searchQuery = '';
+    if (preSearchCollapsed !== null) {
+      _restoreNodeCollapse(preSearchCollapsed);
+      preSearchCollapsed = null;
+    }
+  }
+
+  viewMode = 'acc';
+  let parentLevel = LEVEL_ACCOUNT;
+  let account = null;
+  for (let i = taskIdx - 1; i >= 0 && parentLevel >= LEVEL_YEAR; i--) {
+    const node = nodes[i];
+    if (node.level !== parentLevel) continue;
+    node.collapsed = false;
+    if (node.level === LEVEL_ACCOUNT) account = node;
+    parentLevel--;
+  }
+
+  if (account) {
+    if (!account.collapsedGroups) account.collapsedGroups = {};
+    displayOrder().forEach(status => { account.collapsedGroups[status] = status !== 'todo'; });
+    account.collapsedGroups.todo = false;
+  }
+
+  focusedNodeId = taskId;
+  editingNodeId = null;
+  dismissPicker();
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    document.body.classList.add('mobile-view-tree');
+    document.body.classList.remove('mobile-view-todo');
+    document.getElementById('mt-tree')?.classList.add('active');
+    document.getElementById('mt-todo')?.classList.remove('active');
+  }
+  markDirtyUI();
+  render();
+
+  requestAnimationFrame(() => {
+    const target = document.querySelector(`#content .row[data-node-id="${taskId}"]`);
+    target?.focus({ preventScroll: true });
+    target?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  });
+}
+
 function buildTodoPanel() {
   initSearchBar();
   buildRightTabs();
@@ -1659,6 +1710,7 @@ function buildTodoPanel() {
             e.preventDefault();
             picker?.nodeId === t.id ? advancePicker() : openPicker(t.id, anchor, false);
           });
+          row.addEventListener('click', () => revealTodoInMain(t.id));
           el.appendChild(row);
         });
       });

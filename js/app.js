@@ -255,7 +255,7 @@ window.addEventListener('drop', e => { if (e.dataTransfer?.files?.length) e.prev
 (async () => {
   if ('serviceWorker' in navigator) {
     try {
-      await navigator.serviceWorker.register('./sw.js?v=208');
+      await navigator.serviceWorker.register('./sw.js?v=209');
     } catch (e) {
       console.warn('Service worker registration failed:', e);
     }
