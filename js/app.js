@@ -7,6 +7,10 @@ function authRedirectTo() {
 
 async function doLogin() {
   const btn = document.getElementById('login-btn');
+  if (!navigator.onLine) {
+    showLoginError('You are offline. Connect once to sign in and enable offline access.');
+    return;
+  }
   if (!supabaseAuth) {
     showLoginError('Google sign-in could not load. Check your connection and try again.');
     return;
@@ -41,14 +45,27 @@ async function tryAutoLogin() {
     if (error) throw error;
     const authUser = data?.session?.user;
     if (!authUser) return false;
-    const ok = await loadAppUserFromGoogle(authUser);
-    if (!ok) return false;
-    await registerSession();
+    setOfflineAuthUser(authUser);
+    try {
+      const ok = await loadAppUserFromGoogle(authUser);
+      if (!ok) return false;
+      await registerSession();
+    } catch (e) {
+      if (!currentUser) {
+        const cachedUser = await cachedAppUser(authUser);
+        if (!cachedUser) throw e;
+        currentUser = cachedUser;
+        console.warn('Using cached account while offline.');
+      } else {
+        console.warn('Session registration will retry when the connection returns.', e);
+      }
+    }
     await loadUserData();
     showApp();
     return true;
   } catch (e) {
     console.error('Auto login failed:', e);
+    if (!navigator.onLine) showLoginError('No offline session is available. Connect once to sign in.');
     return false;
   }
 }
@@ -236,6 +253,13 @@ window.addEventListener('drop', e => { if (e.dataTransfer?.files?.length) e.prev
 
 // ── Boot ───────────────────────────────────────────────────────
 (async () => {
+  if ('serviceWorker' in navigator) {
+    try {
+      await navigator.serviceWorker.register('./sw.js?v=208');
+    } catch (e) {
+      console.warn('Service worker registration failed:', e);
+    }
+  }
   const ok = await tryAutoLogin();
   if (!ok) document.getElementById('login-screen').style.display = 'flex';
 })();

@@ -75,6 +75,7 @@ function markDirtyUI() {
 }
 
 function scheduleSave() {
+  queueOfflineSnapshot();
   clearTimeout(saveDebounceTimer);
   saveDebounceTimer = setTimeout(() => flushSave(), SAVE_DEBOUNCE);
 }
@@ -82,7 +83,12 @@ function scheduleSave() {
 async function flushSave() {
   if (!currentUser || isSaving) return;
   const needsSave = dirtyTree || dirtyUI || dirtySettings;
-  if (!needsSave) return;
+  if (!needsSave) { await saveOfflineSnapshot(); return; }
+  if (!navigator.onLine) {
+    const cached = await saveOfflineSnapshot();
+    setSyncLed(cached ? 'offline' : 'error');
+    return;
+  }
   const saveTreeNow = dirtyTree;
   const saveUINow = dirtyUI;
   const saveSettingsNow = dirtySettings;
@@ -97,10 +103,12 @@ async function flushSave() {
     if (saveTreeNow && dirtyTreeVersion === treeVersion) dirtyTree = false;
     if (saveUINow && dirtyUIVersion === uiVersion) dirtyUI = false;
     if (saveSettingsNow && dirtySettingsVersion === settingsVersion) dirtySettings = false;
+    await saveOfflineSnapshot();
     setSyncLed('uploaded');
   } catch (e) {
     console.error('Save failed:', e);
-    setSyncLed('error');
+    await saveOfflineSnapshot();
+    setSyncLed(navigator.onLine ? 'error' : 'offline');
   } finally {
     isSaving = false;
   }
@@ -111,27 +119,19 @@ function startSyncLoop() {
   if (syncTimer) clearInterval(syncTimer);
   syncTimer = setInterval(async () => {
     if (!currentUser || isSaving) return;
-    const needsSave = dirtyTree || dirtyUI || dirtySettings;
-    const saveTreeNow = dirtyTree;
-    const saveUINow = dirtyUI;
-    const saveSettingsNow = dirtySettings;
-    const treeVersion = dirtyTreeVersion;
-    const uiVersion = dirtyUIVersion;
-    const settingsVersion = dirtySettingsVersion;
-    isSaving = true;
+    if (!navigator.onLine) {
+      const cached = await saveOfflineSnapshot();
+      setSyncLed(cached ? 'offline' : 'error');
+      return;
+    }
     try {
-      if (saveTreeNow) await saveTree();
-      if (saveUINow) await saveUIState();
-      if (saveSettingsNow) await saveSettings();
-      if (saveTreeNow && dirtyTreeVersion === treeVersion) dirtyTree = false;
-      if (saveUINow && dirtyUIVersion === uiVersion) dirtyUI = false;
-      if (saveSettingsNow && dirtySettingsVersion === settingsVersion) dirtySettings = false;
+      const hadPending = dirtyTree || dirtyUI || dirtySettings;
+      await flushSave();
       await registerSession();
-      setSyncLed(needsSave ? 'uploaded' : 'synced');
-    } catch {
+      if (!hadPending) setSyncLed('synced');
+    } catch (e) {
+      console.error('Sync failed:', e);
       setSyncLed('error');
-    } finally {
-      isSaving = false;
     }
   }, SYNC_INTERVAL);
 }
@@ -140,7 +140,12 @@ function startSyncLoop() {
 function setSyncLed(state) {
   const led = document.getElementById('sync-led');
   if (!led) return;
-  led.classList.remove('green', 'grey', 'error', 'blink-once', 'blink-twice');
+  led.classList.remove('green', 'grey', 'error', 'offline', 'blink-once', 'blink-twice');
+  const titles = {
+    connected: 'Connected', pending: 'Changes pending', synced: 'Synced',
+    uploaded: 'Changes uploaded', offline: 'Offline — changes saved on this device', error: 'Sync error'
+  };
+  led.title = titles[state] || 'Sync status';
   void led.offsetWidth;
   switch (state) {
     case 'connected':
@@ -160,6 +165,9 @@ function setSyncLed(state) {
     case 'error':
       led.classList.add('error');
       break;
+    case 'offline':
+      led.classList.add('offline');
+      break;
   }
 }
 
@@ -170,7 +178,7 @@ async function registerSession() {
 }
 
 // ── Load ───────────────────────────────────────────────────────
-async function loadUserData() {
+async function loadUserDataFromRemote() {
   // Always start from the main notebook; a previous logout may have happened
   // while an extra notebook was active.
   activeNotepad = null;
@@ -243,10 +251,29 @@ async function loadUserData() {
     notepads = [makeProjectsNotepad(defaultStatuses)];
     await sb.post('settings', { user_id: currentUser.id, statuses: defaultStatuses, theme: {}, notepads, updated_at: new Date().toISOString() });
   }
-  applyTheme();
+}
+
+async function loadUserData() {
+  let loadedOffline = false;
+  try {
+    await loadUserDataFromRemote();
+    await saveOfflineSnapshot();
+  } catch (e) {
+    console.warn('Remote load failed; trying offline data:', e);
+    let snapshot = null;
+    try {
+      snapshot = await readOfflineSnapshot();
+    } catch (cacheError) {
+      console.warn('Offline data could not be read:', cacheError);
+    }
+    if (!restoreOfflineSnapshot(snapshot)) throw e;
+    loadedOffline = true;
+  }
+
+  applyActiveTheme();
 
   startSyncLoop();
-  setSyncLed('connected');
+  setSyncLed(loadedOffline || !navigator.onLine ? 'offline' : 'connected');
   checkAndCreateCurrentWeek();
   if (weekCheckTimer) clearInterval(weekCheckTimer);
   weekCheckTimer = setInterval(() => {
@@ -254,3 +281,22 @@ async function loadUserData() {
     if (now.getDay() === 1 && now.getHours() === 1 && !isProjectsNotepad()) checkAndCreateCurrentWeek();
   }, 60 * 60 * 1000);
 }
+
+window.addEventListener('offline', async () => {
+  if (!currentUser) return;
+  const cached = await saveOfflineSnapshot();
+  setSyncLed(cached ? 'offline' : 'error');
+});
+
+window.addEventListener('online', async () => {
+  if (!currentUser) return;
+  setSyncLed(dirtyTree || dirtyUI || dirtySettings ? 'pending' : 'connected');
+  await flushSave();
+  try {
+    await registerSession();
+    if (!dirtyTree && !dirtyUI && !dirtySettings) setSyncLed('synced');
+  } catch (e) {
+    console.error('Reconnect sync failed:', e);
+    setSyncLed('error');
+  }
+});

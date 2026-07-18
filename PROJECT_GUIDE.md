@@ -10,9 +10,9 @@ Tasker — статическое одностраничное веб-прило
 - Backend: Supabase Auth и прямые REST-запросы к таблицам Supabase из браузера.
 - Вход: Google OAuth; Google-пользователь связывается с записью в таблице `users` по email.
 - Хранение: основное дерево, настройки, UI-состояние и сессии лежат в отдельных таблицах.
-- PWA: подключены `manifest.json`, иконки и mobile layout.
-- Текущая видимая версия: `v2.0.7` в `index.html`.
-- Текущий cache-buster ресурсов: `?v=207` в `index.html`.
+- PWA: подключены `manifest.json`, service worker, offline-кэш и mobile layout.
+- Текущая видимая версия: `v2.0.8` в `index.html`.
+- Текущий cache-buster ресурсов: `?v=208` в `index.html`.
 
 Локальный запуск:
 
@@ -32,6 +32,7 @@ python3 -m http.server 8000
 | `js/vendor/supabase-global.js` | Предоставляет SDK через глобальный объект для остальных скриптов. |
 | `js/db.js` | Конфигурация Supabase, Auth client, JWT-заголовки и тонкая REST-обёртка `sb`. |
 | `js/state.js` | Константы уровней, темы и статусов, все основные изменяемые глобальные переменные и общие helpers. |
+| `js/offline.js` | IndexedDB-снимки для offline-входа, локальных изменений и восстановления очереди синхронизации. |
 | `js/sync.js` | Загрузка данных, dirty flags, debounce-сохранение, периодическая синхронизация и регистрация сессии. |
 | `js/tree.js` | Модель плоского дерева, undo/redo, добавление и перемещение узлов, календарная нормализация и создание текущей недели. |
 | `js/picker.js` | Жизненный цикл единственного открытого status picker и применение статуса к задаче. |
@@ -43,6 +44,7 @@ python3 -m http.server 8000
 | `js/app.js` | Google login, boot sequence, переключение экранов, logout, глобальные hotkeys и mobile tabs. |
 | `migration.sql` | Ручная миграция Supabase: Google mapping, RLS, роли, темы и блокноты. Запускается вручную в SQL Editor. |
 | `manifest.json` | PWA manifest. |
+| `sw.js` | Service worker: кэш оболочки приложения и same-origin ресурсов. |
 | `images/` | Локальная библиотека фоновых изображений темы. |
 | `hint-design.html` | Отдельная страница-прототип подсказок; в runtime приложения не входит. |
 | `deploy.php` | Вспомогательный серверный deploy-файл; не участвует в клиентском runtime. |
@@ -57,6 +59,7 @@ python3 -m http.server 8000
 Supabase vendor
 → db
 → state
+→ offline
 → sync
 → tree
 → picker

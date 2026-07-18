@@ -548,6 +548,7 @@ textarea.row-edit-multi{resize:none;overflow:hidden;line-height:1.4;padding:4px 
 #sync-led.green{background:#28c840;}
 #sync-led.grey{background:#4a5570;}
 #sync-led.error{background:#ff5f57;}
+#sync-led.offline{background:#febc2e;box-shadow:0 0 7px rgba(254,188,46,0.45);}
 #sync-led.blink-once{animation:ledBlink 0.6s ease 1;}
 #sync-led.blink-twice{animation:ledBlink 0.5s ease 2;}
 @keyframes ledBlink{
