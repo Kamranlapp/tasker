@@ -67,37 +67,87 @@ html,body{width:100%;height:100%;background-color:var(--c-bg);overflow:hidden;fo
 
 /* ── LOGIN SCREEN ─────────────────────────────────────────── */
 #login-screen{
-  position:fixed;inset:0;background:var(--c-bg) url("../Login_Background@0.5x.webp") center/cover no-repeat;
-  display:flex;align-items:center;justify-content:center;
+  position:fixed;inset:0;
+  display:flex;align-items:center;justify-content:flex-start;
   z-index:1000;
+  padding:clamp(28px,7vw,88px);
+  background:
+    linear-gradient(90deg,rgba(7,38,44,0.34) 0%,rgba(7,38,44,0.05) 48%,rgba(7,38,44,0.08) 100%),
+    url('../Login_Background@0.5x.webp') center/cover no-repeat;
 }
 #login-screen::before{
   content:'';position:absolute;inset:0;
   background:rgba(8,12,18,0.38);
 }
 #login-box{
+  position:relative;
+  width:min(430px,100%);
+  min-height:560px;
+  padding:58px 52px 44px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  overflow:hidden;
+  transform:translateX(50%);
+  background:
+    linear-gradient(180deg,rgba(173,217,205,0.2) 0%,rgba(106,184,190,0.24) 48%,rgba(76,169,184,0.22) 100%),
+    repeating-linear-gradient(118deg,rgba(255,255,255,0.025) 0 1px,rgba(255,255,255,0) 1px 5px),
+    rgba(255,255,255,0.18);
+  background-blend-mode:normal,soft-light,normal;
+  border:0;
+  border-radius:38px;
+  box-shadow:0 28px 80px rgba(7,31,37,0.2), inset 0 1px 0 rgba(255,255,255,0.12);
+  backdrop-filter:blur(24px) saturate(132%) contrast(104%);
+  -webkit-backdrop-filter:blur(24px) saturate(132%) contrast(104%);
+}
+#login-box::before,#login-box::after{content:none;}
+.login-title{
   position:relative;z-index:1;
-  background:rgba(26,31,39,0.82);border:1px solid rgba(255,255,255,0.16);border-radius:16px;
-  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-  padding:40px 48px;width:420px;
-  box-shadow:0 24px 80px rgba(0,0,0,0.42);
+  width:calc(100% + 20px);
+  margin:0 0 26px;
+  font-family:'Brush Script MT','Segoe Script','Snell Roundhand',cursive;
+  font-size:clamp(74px,7.9vw,116px);
+  font-weight:700;
+  line-height:0.9;
+  text-align:center;
+  letter-spacing:0;
+  color:rgba(10,143,153,0.56);
+  background:
+    linear-gradient(105deg,rgba(39,201,207,0.4) 0%,rgba(96,221,204,0.3) 46%,rgba(0,116,131,0.44) 100%),
+    url('../Login_Background@0.5x.webp') center/cover fixed no-repeat;
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:rgba(10,143,153,0.5);
+  -webkit-text-stroke:1.1px rgba(6,110,120,0.2);
+  transform:scaleX(1.08);
+  transform-origin:center;
+  filter:drop-shadow(0 2px 1px rgba(255,255,255,0.11)) drop-shadow(0 10px 18px rgba(7,70,77,0.1));
 }
-#login-box h1{color:#e0b0ff;font-size:18px;font-weight:bold;margin-bottom:6px;}
-#login-box p{color:#4a5570;font-size:12px;margin-bottom:32px;}
+.login-app-icon{
+  position:relative;z-index:1;
+  width:132px;height:132px;
+  margin:0 0 34px;
+  object-fit:contain;
+  filter:drop-shadow(0 18px 28px rgba(22,53,59,0.18));
+}
 #login-btn{
-  width:100%;padding:10px;border-radius:8px;border:none;
-  background:#4a6a8a;color:#cdd6f4;font-family:inherit;
-  font-size:13px;cursor:pointer;transition:background 0.15s;
+  position:relative;z-index:1;
+  width:min(290px,100%);padding:14px 18px;border-radius:999px;border:1px solid rgba(255,255,255,0.48);
+  background:#18aeca;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',sans-serif;
+  font-size:15px;font-weight:600;cursor:pointer;
+  box-shadow:0 14px 30px rgba(12,120,143,0.24), inset 0 1px 0 rgba(255,255,255,0.32);
+  transition:transform 0.15s ease,background 0.15s ease,box-shadow 0.15s ease;
 }
-#login-btn:hover{background:#5a7a9a;}
+#login-btn:hover{background:#16bfdc;box-shadow:0 18px 36px rgba(12,120,143,0.28), inset 0 1px 0 rgba(255,255,255,0.36);transform:translateY(-1px);}
+#login-btn:active{transform:translateY(0);}
+#login-btn:disabled{cursor:default;opacity:0.82;transform:none;}
 .google-login-btn{display:flex;align-items:center;justify-content:center;gap:10px;}
 .google-mark{
   display:inline-flex;align-items:center;justify-content:center;
-  width:20px;height:20px;border-radius:50%;background:#fff;color:#1a1f27;
-  font-family:Arial,sans-serif;font-size:14px;font-weight:bold;line-height:1;
+  width:24px;height:24px;border-radius:50%;background:#fff;color:#4285f4;
+  font-family:Arial,sans-serif;font-size:16px;font-weight:bold;line-height:1;
+  box-shadow:0 2px 7px rgba(7,31,37,0.12);
 }
-#login-error{color:#ff5f57;font-size:11px;margin-top:12px;text-align:center;min-height:16px;}
-.login-spinner{display:inline-block;width:12px;height:12px;border:2px solid #4a5570;border-top-color:#cdd6f4;border-radius:50%;animation:spin 0.6s linear infinite;margin-right:6px;}
+#login-error{position:relative;z-index:1;color:#a83827;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',sans-serif;font-size:12px;margin-top:16px;text-align:center;min-height:18px;}
+.login-spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.42);border-top-color:#ffffff;border-radius:50%;animation:spin 0.6s linear infinite;margin-right:6px;}
 @keyframes spin{to{transform:rotate(360deg);}}
 
 /* ── SETTINGS SCREEN ──────────────────────────────────────── */
@@ -583,12 +633,19 @@ textarea.row-edit-multi{resize:none;overflow:hidden;line-height:1.4;padding:4px 
   html, body { -webkit-text-size-adjust: 100%; }
 
   /* ── Login ── */
-  #login-box{
-    width: 100%; max-width: 420px;
-    padding: 24px 18px; border-radius: 14px;
+  #login-screen{
+    align-items:center;justify-content:center;
+    padding:18px;
+    background-position:center;
   }
-  #login-box h1{font-size:20px;}
-  #login-box p{font-size:13px;margin-bottom:22px;}
+  #login-box{
+    width: 100%; max-width: 380px;
+    min-height:460px;
+    padding:42px 28px 34px; border-radius:30px;
+    transform:none;
+  }
+  .login-title{width:calc(100% + 8px);font-size:68px;margin-bottom:22px;background-attachment:scroll;}
+  .login-app-icon{width:112px;height:112px;border-radius:24px;margin-bottom:28px;}
   #login-btn{padding:14px;font-size:15px;}
   #login-error{font-size:12px;}
 
