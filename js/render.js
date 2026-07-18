@@ -372,6 +372,41 @@ function linkDomain(text) {
   } catch { return null; }
 }
 
+function addProject() {
+  if (!isProjectsNotepad()) return;
+  pushUndo();
+  viewMode = 'acc';
+  const project = {
+    id: nextId++,
+    level: LEVEL_ACCOUNT,
+    text: '',
+    status: '',
+    collapsed: false,
+    collapsedGroups: {}
+  };
+  nodes.push(project);
+  focusedNodeId = project.id;
+  editingNodeId = project.id;
+  markDirtyTree();
+  render();
+}
+
+function appendProjectAddRow(gutter, content) {
+  const gl = mk('div');
+  gl.className = 'gutter-line project-add-gutter';
+  gutter.appendChild(gl);
+
+  const row = mk('div');
+  row.className = 'row project-add-row';
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'project-add-btn';
+  btn.textContent = '+ Project';
+  btn.addEventListener('click', addProject);
+  row.appendChild(btn);
+  content.appendChild(row);
+}
+
 // ── Main render ────────────────────────────────────────────────
 function render() {
   const gutter = document.getElementById('gutter');
@@ -380,6 +415,7 @@ function render() {
   if (!gutter || !content) return;
 
   editor.classList.remove('notepad-mode');
+  editor.classList.toggle('projects-mode', isProjectsNotepad());
   const rows = searchQuery ? buildSearchRows() : (viewMode === 'status' ? buildStatusRows() : buildRows());
   gutter.innerHTML = '';
   content.innerHTML = '';
@@ -400,6 +436,8 @@ function render() {
     }
     content.appendChild(el);
   });
+
+  if (isProjectsNotepad() && !searchQuery) appendProjectAddRow(gutter, content);
 
   const focused = content.querySelector('.row.focused');
   const searchHasFocus = document.activeElement === document.getElementById('search-input');
@@ -423,8 +461,9 @@ function syncGutterHeights() {
 
 // ── Group row ──────────────────────────────────────────────────
 function renderGroupRow(el, row) {
-  el.className = 'row row-group';
-  for (let d = 0; d < LEVEL_TASK; d++) el.appendChild(mk('span')).className = 'indent';
+  el.className = 'row row-group' + (isProjectsNotepad() ? ' project-account-group' : '');
+  const indent = isProjectsNotepad() ? 1 : LEVEL_TASK;
+  for (let d = 0; d < indent; d++) el.appendChild(mk('span')).className = 'indent';
 
   const tog = mk('span');
   tog.className = 'toggle ' + (row.collapsed ? 'closed' : 'open');
@@ -470,17 +509,19 @@ function renderGroupRow(el, row) {
 
 // ── Status-group row (Status mode only) ───────────────────────
 function renderStatusGroupRow(el, row) {
-  el.className = 'row row-group';
-  for (let d = 0; d < LEVEL_ACCOUNT; d++) el.appendChild(mk('span')).className = 'indent';
+  el.className = 'row row-group' + (isProjectsNotepad() ? ' project-status-group' : '');
+  const indent = isProjectsNotepad() ? 0 : LEVEL_ACCOUNT;
+  for (let d = 0; d < indent; d++) el.appendChild(mk('span')).className = 'indent';
 
   const tog = mk('span');
   tog.className = 'toggle ' + (row.collapsed ? 'closed' : 'open');
   tog.textContent = '▾';
   const toggleSG = () => {
-    const wn = row.weekNode;
-    if (!wn.collapsedStatusGroups) wn.collapsedStatusGroups = {};
-    wn.collapsedStatusGroups[row.status] = !wn.collapsedStatusGroups[row.status];
-    markDirtyUI(); render();
+    const owner = row.statusState || row.weekNode;
+    if (!owner.collapsedStatusGroups) owner.collapsedStatusGroups = {};
+    owner.collapsedStatusGroups[row.status] = !owner.collapsedStatusGroups[row.status];
+    row.settingsBacked ? markDirtySettings() : markDirtyUI();
+    render();
   };
   tog.addEventListener('click', e => { e.stopPropagation(); toggleSG(); });
   el.appendChild(tog);
@@ -506,6 +547,7 @@ function renderStatusGroupRow(el, row) {
 
 // ── Status rows (Status view mode for main tree) ───────────────
 function buildStatusRows() {
+  if (isProjectsNotepad()) return buildProjectStatusRows();
   const rows = [];
   let i = 0;
   while (i < nodes.length) {
@@ -567,6 +609,62 @@ function buildStatusRows() {
   return rows;
 }
 
+function buildProjectStatusRows() {
+  const rows = [];
+  const byStatus = {};
+  let i = 0;
+
+  while (i < nodes.length) {
+    const project = nodes[i];
+    if (project.level !== LEVEL_ACCOUNT) { i++; continue; }
+    const projectIdx = i;
+    const tasksByStatus = {};
+    i++;
+    while (i < nodes.length && nodes[i].level > LEVEL_ACCOUNT) {
+      if (nodes[i].level === LEVEL_TASK) {
+        const status = nodes[i].status || 'todo';
+        const task = { node: nodes[i], nodeIdx: i, subs: [] };
+        i++;
+        while (i < nodes.length && nodes[i].level === LEVEL_SUB) {
+          task.subs.push({ node: nodes[i], nodeIdx: i });
+          i++;
+        }
+        if (!tasksByStatus[status]) tasksByStatus[status] = [];
+        tasksByStatus[status].push(task);
+      } else {
+        i++;
+      }
+    }
+    Object.entries(tasksByStatus).forEach(([status, tasks]) => {
+      if (!byStatus[status]) byStatus[status] = [];
+      byStatus[status].push({ project, projectIdx, tasks });
+    });
+  }
+
+  const np = notepads.find(n => n.key === PROJECTS_NOTEPAD_KEY);
+  if (np && !np.collapsedStatusGroups) np.collapsedStatusGroups = {};
+  displayOrder().forEach(status => {
+    const projects = byStatus[status];
+    if (!projects?.length) return;
+    const collapsed = !!np?.collapsedStatusGroups?.[status];
+    rows.push({
+      kind: 'status-group', status, collapsed,
+      count: projects.reduce((sum, p) => sum + p.tasks.length, 0),
+      statusState: np, settingsBacked: true
+    });
+    if (collapsed) return;
+    projects.forEach(({ project, projectIdx, tasks }) => {
+      rows.push({ kind: 'node', node: project, nodeIdx: projectIdx, extraIndent: 1 });
+      if (project.collapsed) return;
+      tasks.forEach(({ node, nodeIdx, subs }) => {
+        rows.push({ kind: 'node', node, nodeIdx, extraIndent: 1 });
+        if (!node.collapsed) subs.forEach(sub => rows.push({ kind: 'node', node: sub.node, nodeIdx: sub.nodeIdx, extraIndent: 1 }));
+      });
+    });
+  });
+  return rows;
+}
+
 // ── Node row ───────────────────────────────────────────────────
 function renderNodeRow(el, row) {
   const node = row.node;
@@ -575,9 +673,11 @@ function renderNodeRow(el, row) {
   const isEditing = node.id === editingNodeId;
 
   el.className = 'row level-' + node.level + (isFocused ? ' focused' : '') + (node.expanded || (node.text && node.text.includes('\n')) ? ' expanded' : '');
+  if (isProjectsNotepad() && row.extraIndent) el.classList.add('project-status-child');
   el.tabIndex = 0;
 
-  const indent = node.level + (row.extraIndent || 0);
+  const baseIndent = isProjectsNotepad() ? Math.max(0, node.level - LEVEL_ACCOUNT) : node.level;
+  const indent = baseIndent + (row.extraIndent || 0);
   for (let d = 0; d < indent; d++) el.appendChild(mk('span')).className = 'indent';
   if (node.level === LEVEL_TASK || node.level === LEVEL_SUB) {
     el.appendChild(mk('span', 'width:15px;display:inline-block;flex-shrink:0;'));
@@ -674,7 +774,9 @@ function renderNodeRow(el, row) {
     const dh = mk('span');
     dh.className = 'del-hint';
     dh.textContent = '⌫';
-    dh.title = node.level === LEVEL_ACCOUNT ? 'Delete account and entries' : node.level === LEVEL_TASK ? 'Delete entry' : 'Delete sub-entry';
+    dh.title = node.level === LEVEL_ACCOUNT
+      ? (isProjectsNotepad() ? 'Delete project and entries' : 'Delete account and entries')
+      : node.level === LEVEL_TASK ? 'Delete entry' : 'Delete sub-entry';
     dh.addEventListener('click', e => {
       e.stopPropagation();
       pushUndo();
@@ -737,12 +839,14 @@ function renderEditInput(el, node, ni) {
   const multiline = node.level === LEVEL_TASK || node.level === LEVEL_SUB;
   const inp = document.createElement(multiline ? 'textarea' : 'input');
   inp.className = 'row-edit' + (multiline ? ' row-edit-multi' : '');
-  if (!multiline) inp.placeholder = node.level === LEVEL_ACCOUNT ? 'account name…' : 'new entry…';
+  if (!multiline) inp.placeholder = node.level === LEVEL_ACCOUNT
+    ? (isProjectsNotepad() ? 'project name…' : 'account name…')
+    : 'new entry…';
   inp.value = node.text || '';
 
   // Account name autocomplete — live names only, Tab inserts first match
   let accNames = [];
-  if (node.level === LEVEL_ACCOUNT) {
+  if (node.level === LEVEL_ACCOUNT && !isProjectsNotepad()) {
     accNames = [...new Set(
       nodes.filter(n => n.level === LEVEL_ACCOUNT && n.text && n.id !== node.id).map(n => n.text)
     )];
@@ -1199,7 +1303,7 @@ function switchNotebook(key) {
     const _si = document.getElementById('search-input');
     if (_si) _si.value = '';
     applyActiveTheme();
-    checkAndCreateCurrentWeek();
+    if (!isProjectsNotepad()) checkAndCreateCurrentWeek();
     render();
     // Fade in: set opacity 0 instantly (no transition), then let transition animate to 1
     const mc2 = document.getElementById('content');
@@ -1432,11 +1536,13 @@ function buildTodoPanel() {
   const prevScrollTop = el.scrollTop;
   el.innerHTML = '';
 
+  const projectsMode = isProjectsNotepad();
   const weeks = [];
-  let curWeek = null, curAcc = null, curItems = [];
+  let curWeek = projectsMode ? { label: 'Projects', accs: [] } : null;
+  let curAcc = null, curItems = [];
 
   nodes.forEach(n => {
-    if (n.level === LEVEL_WEEK) {
+    if (!projectsMode && n.level === LEVEL_WEEK) {
       if (curWeek) { if (curAcc && curItems.length) curWeek.accs.push({ acc: curAcc, items: [...curItems] }); weeks.push(curWeek); }
       curWeek = { label: n.text, accs: [] }; curAcc = null; curItems = [];
     }
@@ -1460,14 +1566,17 @@ function buildTodoPanel() {
     return;
   }
 
-  const current = withTodos[withTodos.length - 1];
-  const previous = withTodos.length > 1 ? withTodos[withTodos.length - 2] : null;
-  const older = withTodos.length > 2 ? withTodos.slice(0, withTodos.length - 2) : [];
-
   const sections = [];
-  if (older.length) sections.push({ label: 'Older', weeks: older, key: 'sec_older' });
-  if (previous) sections.push({ label: 'Previous week', weeks: [previous], key: 'sec_prev' });
-  sections.push({ label: 'Current week', weeks: [current], key: 'sec_cur' });
+  if (projectsMode) {
+    sections.push({ label: 'Projects', weeks: withTodos, key: 'sec_projects' });
+  } else {
+    const current = withTodos[withTodos.length - 1];
+    const previous = withTodos.length > 1 ? withTodos[withTodos.length - 2] : null;
+    const older = withTodos.length > 2 ? withTodos.slice(0, withTodos.length - 2) : [];
+    if (older.length) sections.push({ label: 'Older', weeks: older, key: 'sec_older' });
+    if (previous) sections.push({ label: 'Previous week', weeks: [previous], key: 'sec_prev' });
+    sections.push({ label: 'Current week', weeks: [current], key: 'sec_cur' });
+  }
 
   sections.forEach((sec, si) => {
     const isCol = !!todoCollapsed[sec.key];
@@ -1509,7 +1618,7 @@ function buildTodoPanel() {
         const hdr = document.createElement('div');
         hdr.className = 'todo-acc-header';
         const is = theme.indentSize || 18;
-        hdr.style.paddingLeft = (3 * is - 10) + 'px';
+        hdr.style.paddingLeft = projectsMode ? '8px' : (3 * is - 10) + 'px';
 
         const tog = document.createElement('span');
         tog.className = 'todo-acc-toggle ' + (isColA ? 'closed' : 'open');
@@ -1535,7 +1644,7 @@ function buildTodoPanel() {
           const row = document.createElement('div');
           row.className = 'todo-item';
           const is = theme.indentSize || 18;
-          row.style.paddingLeft = (4 * is - 10 + 15) + 'px';
+          row.style.paddingLeft = projectsMode ? (is + 23) + 'px' : (4 * is - 10 + 15) + 'px';
 
           const txt = document.createElement('span');
           txt.className = 'todo-item-text';

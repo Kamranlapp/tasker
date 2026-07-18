@@ -375,6 +375,7 @@ html,body{width:100%;height:100%;background-color:var(--c-bg);overflow:hidden;fo
   width:80px;background:#111418;border:1px solid #2a3040;border-radius:4px;
   color:#cdd6f4;font-family:inherit;font-size:11px;padding:4px 6px;outline:none;
 }
+.notepad-emoji-input:disabled,.notepad-name-input:disabled{opacity:0.65;cursor:default;}
 .notepad-copy-btn{
   background:transparent;border:1px solid #2a3040;border-radius:4px;color:#7a8499;
   font-size:10px;cursor:pointer;padding:3px 6px;white-space:nowrap;
@@ -449,6 +450,9 @@ html,body{width:100%;height:100%;background-color:var(--c-bg);overflow:hidden;fo
 #content{flex:1;min-width:0;overflow:hidden;padding:8px 0;transition:opacity 0.3s ease;}
 #editor:not(.notepad-mode) #content::after{content:'';display:block;height:calc(88px + env(safe-area-inset-bottom, 0px));pointer-events:none;}
 .row{min-height:22px;display:flex;align-items:center;padding:2px 8px;margin:0 30px 0 25px;border-radius:8px;cursor:default;outline:none;user-select:none;position:relative;}
+.project-add-row{min-height:30px;}
+.project-add-btn{background:transparent;border:1px dashed #3a4050;border-radius:6px;color:#6c7490;font-family:inherit;font-size:11px;padding:5px 10px;cursor:pointer;}
+.project-add-btn:hover{border-color:#88c0d0;color:#88c0d0;background:rgba(136,192,208,0.08);}
 .row.focused{background:#323a47;}
 #left-wrap:not(:hover) .row.focused{background:transparent;}
 #left-wrap:not(:hover) .row.focused .del-hint{opacity:0!important;}
@@ -668,6 +672,12 @@ textarea.row-edit-multi{resize:none;overflow:hidden;line-height:1.4;padding:4px 
   #left-wrap .row.row-group{padding-left:20px;}
   #left-wrap .row.level-5{padding-left:10px;}
   #left-wrap .row.level-6{padding-left:20px;}
+  #editor.projects-mode .row.level-4{padding-left:0;}
+  #editor.projects-mode .row.project-account-group{padding-left:10px;}
+  #editor.projects-mode .row.project-status-group{padding-left:0;}
+  #editor.projects-mode .row.level-4.project-status-child{padding-left:10px;}
+  #editor.projects-mode .row.level-5.project-status-child{padding-left:20px;}
+  #editor.projects-mode .row.level-6.project-status-child{padding-left:30px;}
   /* Cancel the extra 15px spacer that render.js inserts on task/sub-entry rows */
   #left-wrap .row.level-5 > span[style*="15px"],
   #left-wrap .row.level-6 > span[style*="15px"]{display:none;}

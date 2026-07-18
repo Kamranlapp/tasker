@@ -65,6 +65,11 @@ function markDirtyTree() {
 function markDirtyUI() {
   dirtyUI = true;
   dirtyUIVersion++;
+  // Collapse state lives on notebook nodes, so extra notebooks also need settings saved.
+  if (activeNotepad !== null) {
+    dirtySettings = true;
+    dirtySettingsVersion++;
+  }
   setSyncLed('pending');
   scheduleSave();
 }
@@ -166,6 +171,24 @@ async function registerSession() {
 
 // ── Load ───────────────────────────────────────────────────────
 async function loadUserData() {
+  // Always start from the main notebook; a previous logout may have happened
+  // while an extra notebook was active.
+  activeNotepad = null;
+  mainNodes = [];
+  mainStatuses = [];
+  notepads = [];
+  todoCollapsed = {};
+  focusedNodeId = null;
+  editingNodeId = null;
+  undoStack.length = 0;
+  redoStack.length = 0;
+  theme = { ...THEME_DEFAULTS };
+  applyStatuses([
+    { key: 'todo', label: 'To-do', icon: '⚠️', pickerRank: 0 },
+    { key: 'done', label: 'Done', icon: '✅', pickerRank: 1 },
+    { key: 'info', label: 'Info', icon: 'ℹ️', pickerRank: 2 }
+  ]);
+
   // Tree (main notebook)
   const trees = await sb.get('trees', `?user_id=eq.${currentUser.id}&notepad_key=is.null&select=nodes`);
   if (trees.length) {
@@ -214,9 +237,11 @@ async function loadUserData() {
           return { ...n, nodes: nds, statuses: sts };
         });
     }
+    if (ensureProjectsNotepad(mainStatuses)) markDirtySettings();
   } else {
     const defaultStatuses = STATUSES.map(s => ({ key: s, label: S_LABEL[s], icon: S_ICON[s] }));
-    await sb.post('settings', { user_id: currentUser.id, statuses: defaultStatuses, theme: {}, notepads: [], updated_at: new Date().toISOString() });
+    notepads = [makeProjectsNotepad(defaultStatuses)];
+    await sb.post('settings', { user_id: currentUser.id, statuses: defaultStatuses, theme: {}, notepads, updated_at: new Date().toISOString() });
   }
   applyTheme();
 
@@ -226,6 +251,6 @@ async function loadUserData() {
   if (weekCheckTimer) clearInterval(weekCheckTimer);
   weekCheckTimer = setInterval(() => {
     const now = getCETDate();
-    if (now.getDay() === 1 && now.getHours() === 1) checkAndCreateCurrentWeek();
+    if (now.getDay() === 1 && now.getHours() === 1 && !isProjectsNotepad()) checkAndCreateCurrentWeek();
   }, 60 * 60 * 1000);
 }

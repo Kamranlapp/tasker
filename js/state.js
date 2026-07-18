@@ -12,6 +12,11 @@ const LEVEL_ACCOUNT = 4;
 const LEVEL_TASK = 5;
 const LEVEL_SUB = 6;
 
+const PROJECTS_NOTEPAD_KEY = 'projects';
+const PROJECTS_NOTEPAD_NAME = 'Projects';
+const PROJECTS_NOTEPAD_EMOJI = '⌛️';
+const MAX_USER_NOTEPADS = 2;
+
 const FONT_OPTIONS = [
   { label: 'Menlo / Mono (default)', value: "'Menlo','Monaco','Courier New',monospace" },
   { label: 'JetBrains Mono', value: "'JetBrains Mono',monospace" },
@@ -74,7 +79,7 @@ let weekCheckTimer = null;
 let isSaving = false;
 let todoCollapsed = {};
 let theme = { ...THEME_DEFAULTS };
-let notepads = [];        // extra notebooks: [{key, name, emoji, nodes:[], statuses:[]}]
+let notepads = [];        // built-in Projects + extra notebooks: [{key, name, emoji, nodes:[], statuses:[]}]
 let activeNotepad = null; // null = main notebook, else notebook key
 let mainNodes = [];       // backup of main nodes while viewing extra notebook
 let mainStatuses = [];    // backup of main statuses while viewing extra notebook
@@ -165,6 +170,60 @@ function serializeStatuses() {
     key: s, icon: S_ICON[s], label: S_LABEL[s],
     pickerRank: pOrder.indexOf(s)
   }));
+}
+
+function isProjectsNotepad(key = activeNotepad) {
+  return key === PROJECTS_NOTEPAD_KEY;
+}
+
+function isPermanentNotepad(key) {
+  return key === PROJECTS_NOTEPAD_KEY;
+}
+
+function userNotepadCount() {
+  return notepads.filter(np => !isPermanentNotepad(np.key)).length;
+}
+
+function makeProjectsNotepad(statuses = serializeStatuses()) {
+  return {
+    key: PROJECTS_NOTEPAD_KEY,
+    name: PROJECTS_NOTEPAD_NAME,
+    emoji: PROJECTS_NOTEPAD_EMOJI,
+    kind: 'projects',
+    permanent: true,
+    nodes: [],
+    theme: { ...THEME_DEFAULTS },
+    statuses: JSON.parse(JSON.stringify(statuses))
+  };
+}
+
+function ensureProjectsNotepad(statuses = serializeStatuses()) {
+  let changed = false;
+  let np = notepads.find(n => n.key === PROJECTS_NOTEPAD_KEY);
+  if (!np) {
+    notepads.unshift(makeProjectsNotepad(statuses));
+    return true;
+  }
+  if (notepads[0] !== np) {
+    notepads = [np, ...notepads.filter(n => n !== np)];
+    changed = true;
+  }
+  const fixed = {
+    name: PROJECTS_NOTEPAD_NAME,
+    emoji: PROJECTS_NOTEPAD_EMOJI,
+    kind: 'projects',
+    permanent: true
+  };
+  Object.entries(fixed).forEach(([key, value]) => {
+    if (np[key] !== value) { np[key] = value; changed = true; }
+  });
+  if (!Array.isArray(np.nodes)) { np.nodes = []; changed = true; }
+  if (!Array.isArray(np.statuses) || !np.statuses.length) {
+    np.statuses = JSON.parse(JSON.stringify(statuses));
+    changed = true;
+  }
+  if (!np.theme) { np.theme = { ...THEME_DEFAULTS }; changed = true; }
+  return changed;
 }
 
 // Display order: STATUSES array order, but 'todo' always last

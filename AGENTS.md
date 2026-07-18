@@ -8,8 +8,8 @@ Repository guide for Codex-style agents. Use this file as the quick map before o
 - Local run: `python3 -m http.server 8000` from the repository root, then open `http://localhost:8000/`.
 - Deployment: cPanel Git Version Control deploys the checked-in files directly. Keep `.cpanel.yml` as the no-op `/bin/true` stub.
 - Database: Supabase REST is called directly from the browser. Schema changes live in `migration.sql` and are pasted manually into the Supabase SQL editor.
-- Authentication: users sign in with a 6-word seed phrase looked up in the `users` table; the app does not use Supabase Auth sessions.
-- Current visible app version is in `index.html` as `.app-version` (`v1.9.6`). If behavior changes visibly, update cache-busting query strings and version consistently.
+- Authentication: users sign in with Google OAuth through Supabase Auth; the Google identity is linked to the matching `users` row by email.
+- Current visible app version is in `index.html` as `.app-version` (`v2.0.5`). If behavior changes visibly, update cache-busting query strings and version consistently.
 
 ## File map
 
@@ -35,7 +35,7 @@ Repository guide for Codex-style agents. Use this file as the quick map before o
 `index.html` loads scripts in this exact order:
 
 ```text
-db → state → sync → tree → picker → settings → render → hints → onboarding → app
+Supabase vendor → db → state → sync → tree → picker → settings → render → hints → onboarding → app
 ```
 
 There are no ES modules. Every script exports functions and state via global names. A file may rely only on globals created by earlier scripts, or on functions that are invoked later after all scripts have loaded. When adding a new JavaScript file, add its `<script>` tag in `index.html` and verify this order explicitly.
@@ -43,11 +43,12 @@ There are no ES modules. Every script exports functions and state via global nam
 ## Runtime architecture
 
 - `nodes` is a flat array; hierarchy is encoded by `level` plus position, not by child arrays.
-- Levels are: `0 Year → 1 Month → 2 Week → 3 Account → 4 Task → 5 Sub-entry`.
+- Levels are: `0 Year → 1 Quarter → 2 Month → 3 Week → 4 Account → 5 Task → 6 Sub-entry`.
 - A node's parent is the nearest previous node with `level === node.level - 1`.
 - Tasks can have statuses; empty/null statuses should normalize to `todo`.
-- Level-5 sub-entries can be plain text, a single URL rendered as a link, or an inline attachment (`isAttachment`, `dataUrl`, file metadata). Avoid introducing large inline files.
+- Level-6 sub-entries can be plain text, a single URL rendered as a link, or an inline attachment (`isAttachment`, `dataUrl`, file metadata). Avoid introducing large inline files.
 - Extra notebooks store their own `nodes`, `statuses`, and theme data in `settings.notepads`; the main tree is saved separately in the `trees` table.
+- The built-in `projects` notebook (`⌛️ Projects`) is permanent and uses only level 4–6 as Project → Task → Sub-entry. Never run calendar normalization or current-week creation for it.
 - `activeNotepad === null` means the main notebook. When an extra notebook is active, `mainNodes`/`mainStatuses` hold the main notebook while `nodes`/status globals reflect the active notebook.
 
 ## Persistence and mutation checklist
