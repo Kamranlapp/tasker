@@ -9,7 +9,7 @@ Repository guide for Codex-style agents. Use this file as the quick map before o
 - Deployment: cPanel Git Version Control deploys the checked-in files directly. Keep `.cpanel.yml` as the no-op `/bin/true` stub.
 - Database: Supabase REST is called directly from the browser. Schema changes live in `migration.sql` and are pasted manually into the Supabase SQL editor.
 - Authentication: users sign in with Google OAuth through Supabase Auth; the Google identity is linked to the matching `users` row by email.
-- Current visible app version is in `index.html` as `.app-version` (`v2.0.5`). If behavior changes visibly, update cache-busting query strings and version consistently.
+- Current visible app version is in `index.html` as `.app-version` (`v2.0.7`). If behavior changes visibly, update cache-busting query strings and version consistently.
 
 ## File map
 
@@ -23,6 +23,7 @@ Repository guide for Codex-style agents. Use this file as the quick map before o
 | `js/tree.js` | Tree model operations: undo/redo, flat-tree row building, collapse, add/move/nest/reparent, calendar/week normalization. |
 | `js/picker.js` | Inline status picker lifecycle and cycling. |
 | `js/settings.js` | Settings screen: statuses, theme controls, notepad CRUD, admin user management. |
+| `js/backup.js` | Full JSON backup/restore plus Markdown and CSV exports for all notebooks. |
 | `js/render.js` | DOM rendering and interaction wiring for main tree, status mode, drag/drop, editing, notebook switcher, search, to-do panel. |
 | `js/hints.js` | Onboarding hint card content. |
 | `js/onboarding.js` | Hint card rendering/navigation and first-run display. |
@@ -35,7 +36,7 @@ Repository guide for Codex-style agents. Use this file as the quick map before o
 `index.html` loads scripts in this exact order:
 
 ```text
-Supabase vendor → db → state → sync → tree → picker → settings → render → hints → onboarding → app
+Supabase vendor → db → state → sync → tree → picker → settings → backup → render → hints → onboarding → app
 ```
 
 There are no ES modules. Every script exports functions and state via global names. A file may rely only on globals created by earlier scripts, or on functions that are invoked later after all scripts have loaded. When adding a new JavaScript file, add its `<script>` tag in `index.html` and verify this order explicitly.

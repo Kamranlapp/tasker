@@ -19,6 +19,7 @@ function renderSettings() {
   document.getElementById('seed-display').textContent = currentUser.email || currentUser.display_name || 'Google account';
   renderStatusList();
   renderThemePanel();
+  renderBackupPanel();
   renderAdminPanel();
 }
 

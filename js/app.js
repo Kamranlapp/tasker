@@ -166,14 +166,14 @@ document.getElementById('logout-btn').addEventListener('click', () => {
   }, 1000);
 });
 
-function showSavedToast() {
+function showSavedToast(message = 'Saved') {
   let toast = document.getElementById('saved-toast');
   if (!toast) {
     toast = document.createElement('div');
     toast.id = 'saved-toast';
     document.body.appendChild(toast);
   }
-  toast.textContent = 'Saved';
+  toast.textContent = message;
   toast.classList.remove('fade-out');
   void toast.offsetWidth;
   toast.classList.add('visible');
