@@ -1577,6 +1577,10 @@ function revealTodoInMain(taskId) {
     const target = document.querySelector(`#content .row[data-node-id="${taskId}"]`);
     target?.focus({ preventScroll: true });
     target?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    if (target) {
+      target.classList.add('todo-reveal-flash');
+      target.addEventListener('animationend', () => target.classList.remove('todo-reveal-flash'), { once: true });
+    }
   });
 }
 
