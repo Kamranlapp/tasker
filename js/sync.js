@@ -104,6 +104,11 @@ async function flushSave() {
     if (saveUINow && dirtyUIVersion === uiVersion) dirtyUI = false;
     if (saveSettingsNow && dirtySettingsVersion === settingsVersion) dirtySettings = false;
     await saveOfflineSnapshot();
+    try {
+      await registerSession();
+    } catch (sessionError) {
+      console.warn('Session activity update failed:', sessionError);
+    }
     setSyncLed('uploaded');
   } catch (e) {
     console.error('Save failed:', e);
@@ -127,7 +132,6 @@ function startSyncLoop() {
     try {
       const hadPending = dirtyTree || dirtyUI || dirtySettings;
       await flushSave();
-      await registerSession();
       if (!hadPending) setSyncLed('synced');
     } catch (e) {
       console.error('Sync failed:', e);
@@ -296,11 +300,5 @@ window.addEventListener('online', async () => {
   if (!currentUser) return;
   setSyncLed(dirtyTree || dirtyUI || dirtySettings ? 'pending' : 'connected');
   await flushSave();
-  try {
-    await registerSession();
-    if (!dirtyTree && !dirtyUI && !dirtySettings) setSyncLed('synced');
-  } catch (e) {
-    console.error('Reconnect sync failed:', e);
-    setSyncLed('error');
-  }
+  if (!dirtyTree && !dirtyUI && !dirtySettings) setSyncLed('synced');
 });
