@@ -49,8 +49,9 @@ const sb = {
   get(table, params = '') { return this.query(table, 'GET', null, params); },
   post(table, body) { return this.query(table, 'POST', body); },
   patch(table, params, body) { return this.query(table, 'PATCH', body, params); },
-  async upsert(table, body) {
-    const url = `${SUPABASE_URL}/rest/v1/${table}`;
+  async upsert(table, body, onConflict = '') {
+    const conflictParams = onConflict ? `?on_conflict=${encodeURIComponent(onConflict)}` : '';
+    const url = `${SUPABASE_URL}/rest/v1/${table}${conflictParams}`;
     const r = await fetch(url, {
       method: 'POST',
       headers: {

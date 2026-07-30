@@ -174,7 +174,11 @@ function setSyncLed(state) {
 // ── Session ────────────────────────────────────────────────────
 async function registerSession() {
   const token = getDeviceToken();
-  await sb.upsert('sessions', { user_id: currentUser.id, device_token: token, last_seen: new Date().toISOString() });
+  await sb.upsert(
+    'sessions',
+    { user_id: currentUser.id, device_token: token, last_seen: new Date().toISOString() },
+    'user_id,device_token'
+  );
 }
 
 // ── Load ───────────────────────────────────────────────────────
