@@ -1,25 +1,33 @@
 // ── Tasker application shell cache ─────────────────────────────
-const CACHE_NAME = 'tasker-shell-v2100';
+const CACHE_NAME = 'tasker-shell-v2203';
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.json',
   './Icon.png',
-  './css/style.css?v=2100',
-  './js/vendor/supabase.js?v=2100',
-  './js/vendor/supabase-global.js?v=2100',
-  './js/db.js?v=2100',
-  './js/state.js?v=2100',
-  './js/offline.js?v=2100',
-  './js/sync.js?v=2100',
-  './js/tree.js?v=2100',
-  './js/picker.js?v=2100',
-  './js/settings.js?v=2100',
-  './js/backup.js?v=2100',
-  './js/render.js?v=2100',
-  './js/hints.js?v=2100',
-  './js/onboarding.js?v=2100',
-  './js/app.js?v=2100'
+  './css/style.css?v=2203',
+  './fonts/raleway-300.woff2',
+  './fonts/raleway-600.woff2',
+  './images/login-background.avif',
+  './images/google-g.png',
+  './images/notebook-types/calendar.png',
+  './images/notebook-types/projects.png',
+  './images/notebook-types/text.png',
+  './js/vendor/supabase.js?v=2203',
+  './js/vendor/supabase-global.js?v=2203',
+  './js/db.js?v=2203',
+  './js/state.js?v=2203',
+  './js/offline.js?v=2203',
+  './js/sync.js?v=2203',
+  './js/tree.js?v=2203',
+  './js/picker.js?v=2203',
+  './js/settings.js?v=2203',
+  './js/richtext.js?v=2203',
+  './js/backup.js?v=2203',
+  './js/render.js?v=2203',
+  './js/hints.js?v=2203',
+  './js/onboarding.js?v=2203',
+  './js/app.js?v=2203'
 ];
 
 self.addEventListener('install', event => {

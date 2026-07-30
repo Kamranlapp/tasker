@@ -202,6 +202,7 @@ function showSavedToast(message = 'Saved') {
 }
 
 document.addEventListener('keydown', e => {
+  if (e.target.closest?.('.rich-text-editor')) return;
   if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 'z') { e.preventDefault(); undo(); }
   if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); redo(); }
   if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'i' || e.key === 'I')) { e.preventDefault(); showAllHints(); }
@@ -255,7 +256,7 @@ window.addEventListener('drop', e => { if (e.dataTransfer?.files?.length) e.prev
 (async () => {
   if ('serviceWorker' in navigator) {
     try {
-      await navigator.serviceWorker.register('./sw.js?v=2100');
+      await navigator.serviceWorker.register('./sw.js?v=2203');
     } catch (e) {
       console.warn('Service worker registration failed:', e);
     }

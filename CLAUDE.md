@@ -168,8 +168,8 @@ Always use `dismissPicker()` / `commitPicker()` — never touch `picker` directl
 - All levels use `node.level` as the indent unit count (0→1→2→3→4→5 spans, each `indentSize` px wide)
 - Levels 4 and 5 get an additional fixed **15 px** spacer so entries clear the group-row emoji
 - Group rows sit at 4 indent units (between account at 3 and tasks at 4)
-- To-do panel indentation also scales with `theme.indentSize`: week at `2×`, account at `3×`, item at `4× + 15px` (offset by the 10px outer margin)
-- `indentSize` is configurable via the Settings theme slider
+- To-do panel indentation uses the fixed 15px unit: week at `2×`, account at `3×`, item at `4× + 15px` (offset by the 10px outer margin)
+- `indentSize` is fixed at 15px and is not exposed in Settings
 
 **Row highlight behaviour:**
 - Main tab: `.row.focused` background is suppressed via `#left-wrap:not(:hover) .row.focused { background: transparent }` — highlight disappears when mouse leaves the panel
@@ -185,7 +185,7 @@ Always use `dismissPicker()` / `commitPicker()` — never touch `picker` directl
 |---|---|---|
 | Settings UI shell | 1–23 | `openSettings()`, `closeSettings()`, `renderSettings()` |
 | Status list | 25–141 | CRUD for custom statuses; `todo` undeletable; drag-reorder changes `GROUP_ORDER`; row layout: drag handle → key-label → icon input → label input → × → spacer |
-| Theme panel + notepad tabs | 143–412 | `renderThemePanel()`, `addNotepad()` (max 2 extra), `removeNotepad()` — per-notepad theme editing with copy-from-main |
+| Theme panel + notepad tabs | 143–412 | `renderThemePanel()`, `addNotepad()`, `removeNotepad()` — per-notepad theme editing with copy-from-main |
 | Admin panel | 414–560 | `renderAdminPanel()`, `deleteUser()`, `createNewUser()` — user list loads on demand; only shown to `role = 'admin'` accounts |
 
 ### `js/app.js` (159 lines)

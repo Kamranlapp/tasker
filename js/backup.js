@@ -80,6 +80,8 @@ function exportNotebooksSnapshot() {
       key: np.key,
       name: np.name || np.key,
       emoji: np.emoji || '📝',
+      kind: notepadKind(np.key),
+      content: np.content || '',
       nodes: cloneBackupValue(np.nodes || []),
       statuses: cloneBackupValue(np.statuses || backupMainStatuses())
     }))
@@ -99,6 +101,11 @@ function exportMarkdown() {
   const lines = ['# Tasker export', '', `Exported: ${new Date().toLocaleString()}`, ''];
   books.forEach(book => {
     lines.push(`## ${book.emoji} ${markdownText(book.name)}`, '');
+    if (book.kind === 'text') {
+      const text = richTextToPlainText(book.content);
+      lines.push(text || '_Empty notebook_', '');
+      return;
+    }
     if (!book.nodes.length) {
       lines.push('_Empty notebook_', '');
       return;
@@ -130,6 +137,10 @@ function nodeType(level) {
 function exportCsv() {
   const rows = [['notebook', 'node_id', 'parent_id', 'level', 'type', 'status', 'status_label', 'text', 'attachment_name', 'attachment_size_bytes']];
   exportNotebooksSnapshot().forEach(book => {
+    if (book.kind === 'text') {
+      rows.push([`${book.emoji} ${book.name}`.trim(), '', '', '', 'rich-text', '', '', richTextToPlainText(book.content), '', '']);
+      return;
+    }
     const parents = [];
     const statusMap = Object.fromEntries((book.statuses || []).map(s => [s.key, s.label || s.key]));
     book.nodes.forEach(node => {
@@ -185,6 +196,7 @@ function validateBackupPayload(payload) {
   data.notepads.forEach((np, i) => {
     if (!np || typeof np !== 'object' || typeof np.key !== 'string' || !np.key || keys.has(np.key)) throw new Error(`Invalid notebook at position ${i + 1}.`);
     keys.add(np.key);
+    if (np.kind === 'text' && typeof np.content !== 'string') throw new Error(`Notebook "${np.name || np.key}": rich-text content is invalid.`);
     validateNodes(np.nodes, `Notebook "${np.name || np.key}"`);
     validateStatuses(np.statuses, `Notebook "${np.name || np.key}"`);
   });

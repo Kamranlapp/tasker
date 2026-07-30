@@ -280,7 +280,8 @@ USING (public.tasker_can_access_user(user_id));
 
 -- 4. Add 'notepads' column to settings
 --    Stores array of up to 3 notepads, each with:
---    { key, name, emoji, theme: { bg, mainBg, rightBg, mainBlur, rightBlur, yearColor, weekColor, accountColor, textColor } }
+--    { key, name, emoji, kind: 'calendar'|'projects'|'text', content?, nodes, statuses,
+--      theme: { bg, mainBg, rightBg, mainBlur, rightBlur, yearColor, weekColor, accountColor, textColor } }
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS notepads jsonb DEFAULT '[]'::jsonb;
 
 -- 5. Add 'active_notepad' to ui_state (which notepad is currently selected)

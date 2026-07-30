@@ -20,6 +20,8 @@ async function saveUIState() {
 }
 
 async function saveSettings() {
+  enforceFixedIndentSize(theme);
+  notepads.forEach(np => enforceFixedIndentSize(np.theme));
   // Sync active notebook nodes + statuses back into notepads array before saving
   if (activeNotepad !== null) {
     const np = notepads.find(n => n.key === activeNotepad);
@@ -253,7 +255,12 @@ async function loadUserDataFromRemote() {
           return { ...n, nodes: nds, statuses: sts };
         });
     }
-    if (ensureProjectsNotepad(mainStatuses)) markDirtySettings();
+    let fixedIndentChanged = enforceFixedIndentSize(theme);
+    notepads.forEach(np => {
+      if (!np.theme) { np.theme = { ...THEME_DEFAULTS }; fixedIndentChanged = true; }
+      if (enforceFixedIndentSize(np.theme)) fixedIndentChanged = true;
+    });
+    if (ensureProjectsNotepad(mainStatuses) || fixedIndentChanged) markDirtySettings();
   } else {
     const defaultStatuses = STATUSES.map(s => ({ key: s, label: S_LABEL[s], icon: S_ICON[s] }));
     notepads = [makeProjectsNotepad(defaultStatuses)];
@@ -286,7 +293,7 @@ async function loadUserData() {
   if (weekCheckTimer) clearInterval(weekCheckTimer);
   weekCheckTimer = setInterval(() => {
     const now = getCETDate();
-    if (now.getDay() === 1 && now.getHours() === 1 && !isProjectsNotepad()) checkAndCreateCurrentWeek();
+    if (now.getDay() === 1 && now.getHours() === 1 && isCalendarNotepad()) checkAndCreateCurrentWeek();
   }, 60 * 60 * 1000);
 }
 

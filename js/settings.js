@@ -127,14 +127,91 @@ function removeStatus(key) {
 }
 
 // ── Theme panel ────────────────────────────────────────────────
+let notebookTypeTooltipTimer = null;
+
+function hideNotebookTypeTooltip() {
+  clearTimeout(notebookTypeTooltipTimer);
+  notebookTypeTooltipTimer = null;
+  document.querySelector('.notebook-type-tooltip')?.remove();
+}
+
+function notebookTypeDescription(kind) {
+  if (kind === 'projects') return 'Projects with tasks and sub-entries, without calendar sections.';
+  if (kind === 'text') return 'A blank rich-text page without weeks or projects.';
+  return 'Year → Quarter → Month → Week, with accounts and tasks inside each week.';
+}
+
+function attachNotebookTypeTooltip(hoverTarget, icon, label) {
+  let pointerX = 0;
+  let pointerY = 0;
+  hoverTarget.addEventListener('mousemove', e => {
+    pointerX = e.clientX;
+    pointerY = e.clientY;
+  });
+  hoverTarget.addEventListener('mouseenter', e => {
+    pointerX = e.clientX;
+    pointerY = e.clientY;
+    hideNotebookTypeTooltip();
+    notebookTypeTooltipTimer = setTimeout(() => {
+      notebookTypeTooltipTimer = null;
+      if (!hoverTarget.isConnected || !icon.isConnected) return;
+      const tooltip = document.createElement('div');
+      tooltip.className = 'notebook-type-tooltip';
+      tooltip.textContent = label;
+      tooltip.setAttribute('role', 'tooltip');
+      document.body.appendChild(tooltip);
+
+      const tooltipRect = tooltip.getBoundingClientRect();
+      const margin = 8;
+      const left = Math.min(
+        Math.max(pointerX + 35, margin),
+        window.innerWidth - tooltipRect.width - margin
+      );
+      const top = Math.min(
+        Math.max(pointerY + 35, margin),
+        window.innerHeight - tooltipRect.height - margin
+      );
+      tooltip.style.left = left + 'px';
+      tooltip.style.top = top + 'px';
+    }, 500);
+  });
+  hoverTarget.addEventListener('mouseleave', hideNotebookTypeTooltip);
+}
+
 function renderThemePanel() {
   const panel = document.getElementById('theme-panel');
   if (!panel) return;
+  hideNotebookTypeTooltip();
   panel.innerHTML = '';
 
   const ALL_KEY = '__all__';
+  const themeLayout = document.createElement('div');
+  themeLayout.className = 'settings-theme-layout';
+  const notepadDetails = document.createElement('div');
+  notepadDetails.className = 'settings-notepad-details';
+  const themeContent = document.createElement('div');
+  themeContent.className = 'settings-theme-content';
+  const themeLeft = document.createElement('div');
+  themeLeft.className = 'settings-theme-left';
+  const themeRight = document.createElement('div');
+  themeRight.className = 'settings-theme-right';
 
   // ── Notebook selector (styled like main page) ─────────────────
+  const nbTitle = document.createElement('div');
+  nbTitle.className = 'theme-group-title settings-nb-title';
+  const nbTitleText = document.createElement('span');
+  nbTitleText.textContent = 'Notebooks';
+  const addNotepadBtn = document.createElement('button');
+  addNotepadBtn.id = 'add-notepad-btn';
+  addNotepadBtn.className = 'settings-nb-header-add';
+  addNotepadBtn.title = 'Add notebook';
+  addNotepadBtn.setAttribute('aria-label', 'Add notebook');
+  addNotepadBtn.setAttribute('aria-haspopup', 'menu');
+  addNotepadBtn.setAttribute('aria-expanded', 'false');
+  addNotepadBtn.textContent = '+';
+  addNotepadBtn.addEventListener('click', showAddNotepadMenu);
+  nbTitle.appendChild(nbTitleText);
+  nbTitle.appendChild(addNotepadBtn);
   const nbSel = document.createElement('div');
   nbSel.className = 'settings-nb-selector';
 
@@ -142,8 +219,19 @@ function renderThemePanel() {
     const tab = document.createElement('div');
     tab.className = 'settings-nb-tab' + (editingNotepadKey === key ? ' active' : '');
     const em = document.createElement('span'); em.className = 'settings-nb-tab-emoji'; em.textContent = emoji;
-    const nm = document.createElement('span'); nm.textContent = ' ' + name;
+    const nm = document.createElement('span'); nm.className = 'settings-nb-tab-name'; nm.textContent = name;
     tab.appendChild(em); tab.appendChild(nm);
+    if (key !== ALL_KEY) {
+      const kind = notepadKind(key);
+      const typeIcon = document.createElement('img');
+      typeIcon.className = 'settings-nb-tab-type type-' + kind;
+      typeIcon.src = 'images/notebook-types/' + kind + '.png';
+      typeIcon.alt = '';
+      const typeLabel = kind === 'projects' ? 'Projects' : (kind === 'text' ? 'Rich text' : 'Weekly');
+      typeIcon.setAttribute('aria-label', typeLabel);
+      attachNotebookTypeTooltip(tab, typeIcon, notebookTypeDescription(kind));
+      tab.appendChild(typeIcon);
+    }
     tab.addEventListener('click', () => { editingNotepadKey = key; renderThemePanel(); });
     return tab;
   };
@@ -152,15 +240,12 @@ function renderThemePanel() {
   nbSel.appendChild(mkNbTab(null, '📋', 'Main'));
   notepads.forEach(np => nbSel.appendChild(mkNbTab(np.key, np.emoji || '📝', np.name || np.key)));
 
-  if (userNotepadCount() < MAX_USER_NOTEPADS) {
-    const addBtn = document.createElement('span');
-    addBtn.className = 'settings-nb-add';
-    addBtn.textContent = '+';
-    addBtn.title = 'Add notebook';
-    addBtn.addEventListener('click', addNotepad);
-    nbSel.appendChild(addBtn);
-  }
-  panel.appendChild(nbSel);
+  themeLeft.appendChild(nbTitle);
+  themeLeft.appendChild(nbSel);
+  themeLeft.appendChild(notepadDetails);
+  themeLayout.appendChild(themeLeft);
+  themeLayout.appendChild(themeRight);
+  panel.appendChild(themeLayout);
 
   // Notepad edit row (only when a specific notepad is selected)
   if (editingNotepadKey !== null && editingNotepadKey !== ALL_KEY) {
@@ -169,24 +254,24 @@ function renderThemePanel() {
       const permanent = isPermanentNotepad(np.key);
       const editRow = document.createElement('div');
       editRow.className = 'notepad-edit-row';
+      const identityRow = document.createElement('div');
+      identityRow.className = 'notepad-edit-identity';
+      const actionsRow = document.createElement('div');
+      actionsRow.className = 'notepad-edit-actions';
 
       const emojiInp = document.createElement('input');
       emojiInp.className = 'notepad-emoji-input';
       emojiInp.value = np.emoji || '📝';
       emojiInp.maxLength = 2;
-      emojiInp.disabled = permanent;
-      if (permanent) emojiInp.title = 'Built-in notebook icon';
       emojiInp.addEventListener('change', () => { np.emoji = emojiInp.value; markDirtySettings(); renderThemePanel(); });
-      editRow.appendChild(emojiInp);
+      identityRow.appendChild(emojiInp);
 
       const nameInp = document.createElement('input');
       nameInp.className = 'notepad-name-input';
       nameInp.value = np.name || '';
       nameInp.placeholder = 'Name';
-      nameInp.disabled = permanent;
-      if (permanent) nameInp.title = 'Built-in notebook name';
       nameInp.addEventListener('change', () => { np.name = nameInp.value; markDirtySettings(); renderThemePanel(); });
-      editRow.appendChild(nameInp);
+      identityRow.appendChild(nameInp);
 
       const copyBtn = document.createElement('button');
       copyBtn.className = 'notepad-copy-btn';
@@ -198,18 +283,20 @@ function renderThemePanel() {
         applyTheme(np.theme);
         renderThemePanel();
       });
-      editRow.appendChild(copyBtn);
+      actionsRow.appendChild(copyBtn);
 
       if (!permanent) {
         const delBtn = document.createElement('button');
         delBtn.className = 'notepad-del-btn';
-        delBtn.textContent = '×';
+        delBtn.textContent = 'Delete';
         delBtn.title = 'Remove notebook';
         delBtn.addEventListener('click', () => removeNotepad(np.key));
-        editRow.appendChild(delBtn);
+        actionsRow.appendChild(delBtn);
       }
 
-      panel.appendChild(editRow);
+      editRow.appendChild(identityRow);
+      editRow.appendChild(actionsRow);
+      notepadDetails.appendChild(editRow);
     }
   }
 
@@ -228,24 +315,71 @@ function renderThemePanel() {
     markDirtySettings();
   };
 
+  // Font family is global and shared by every notebook.
+  const fontBar = document.createElement('div');
+  fontBar.className = 'settings-font-bar';
+  const fontTitle = document.createElement('span');
+  fontTitle.className = 'theme-group-title';
+  fontTitle.textContent = 'Fonts';
+  const fontSel = document.createElement('select');
+  fontSel.className = 'theme-font-select settings-global-font-select';
+  FONT_OPTIONS.forEach(opt => {
+    const option = document.createElement('option');
+    option.value = opt.value;
+    option.textContent = opt.label;
+    if ((theme.fontFamily || THEME_DEFAULTS.fontFamily) === opt.value) option.selected = true;
+    fontSel.appendChild(option);
+  });
+  fontSel.addEventListener('change', () => {
+    theme.fontFamily = fontSel.value;
+    notepads.forEach(np => {
+      if (!np.theme) np.theme = { ...THEME_DEFAULTS };
+      np.theme.fontFamily = fontSel.value;
+    });
+    editTheme.fontFamily = fontSel.value;
+    applyTheme(editTheme);
+    markDirtySettings();
+  });
+  fontBar.appendChild(fontTitle);
+  fontBar.appendChild(fontSel);
+  themeRight.appendChild(fontBar);
+  themeRight.appendChild(themeContent);
+
   // ── Helpers ──────────────────────────────────────────────────
   const mkColorCell = (label, colorKey, th, sizeKey) => {
-    const cell = document.createElement('div'); cell.className = 'theme-cell';
+    const cell = document.createElement('div'); cell.className = 'theme-cell theme-color-cell';
     const lbl = document.createElement('span'); lbl.className = 'theme-cell-label'; lbl.textContent = label;
     const controls = document.createElement('div'); controls.className = 'theme-cell-controls';
     const wrap = document.createElement('div'); wrap.className = 'theme-color-wrap';
     const inp = document.createElement('input'); inp.type = 'color'; inp.className = 'theme-color-input';
-    inp.value = th[colorKey] || THEME_DEFAULTS[colorKey]; wrap.appendChild(inp); controls.appendChild(wrap);
+    inp.value = th[colorKey] || THEME_DEFAULTS[colorKey];
+    const applyPreviewColor = value => {
+      lbl.style.color = value;
+    };
+    const applyPreviewSize = value => {
+      lbl.style.fontSize = value + 'px';
+    };
+    applyPreviewColor(inp.value);
+    wrap.appendChild(inp); controls.appendChild(wrap);
     const hex = document.createElement('input'); hex.className = 'theme-hex theme-hex-sm';
     hex.value = inp.value; hex.spellcheck = false; controls.appendChild(hex);
     if (sizeKey !== undefined) {
       const si = document.createElement('input'); si.type = 'number';
       si.className = 'theme-size-input'; si.min = 8; si.max = 36; si.step = 1;
       si.value = th[sizeKey] || THEME_DEFAULTS[sizeKey];
-      si.addEventListener('change', () => { th[sizeKey] = parseInt(si.value) || THEME_DEFAULTS[sizeKey]; applyNow(); });
+      applyPreviewSize(si.value);
+      si.addEventListener('input', () => {
+        const previewSize = parseInt(si.value);
+        if (Number.isFinite(previewSize)) applyPreviewSize(previewSize);
+      });
+      si.addEventListener('change', () => {
+        th[sizeKey] = parseInt(si.value) || THEME_DEFAULTS[sizeKey];
+        applyPreviewSize(th[sizeKey]);
+        applyNow();
+      });
       controls.appendChild(si);
     }
-    const onc = v => { th[colorKey] = v; applyNow(); };
+    const onc = v => { th[colorKey] = v; applyPreviewColor(v); applyNow(); };
     inp.addEventListener('input', () => { hex.value = inp.value; onc(inp.value); });
     hex.addEventListener('change', () => {
       let v = hex.value.trim();
@@ -313,56 +447,56 @@ function renderThemePanel() {
     return row;
   };
 
-  // ── Font Colors & Sizes (2-column grid, font picker in 6th slot) ─
-  const fcGroup = document.createElement('div'); fcGroup.className = 'theme-group';
-  const fcTitle = document.createElement('div'); fcTitle.className = 'theme-group-title'; fcTitle.textContent = 'Font Colors & Sizes';
-  fcGroup.appendChild(fcTitle);
+  // ── Font Colors & Sizes ───────────────────────────────────────
+  const fcGroup = document.createElement('div'); fcGroup.className = 'theme-group theme-font-group';
+  const fcLayout = document.createElement('div'); fcLayout.className = 'theme-font-layout';
   const fcGrid = document.createElement('div'); fcGrid.className = 'theme-colors-grid';
   [['Year','yearColor','yearSize'],['Quarter','quarterColor','quarterSize'],
    ['Month','monthColor','monthSize'],
    ['Week','weekColor','weekSize'],['Account','accountColor','accountSize'],
    ['Text','textColor','textSize']]
     .forEach(([l,c,s]) => fcGrid.appendChild(mkColorCell(l, c, editTheme, s)));
-  const fontCell = document.createElement('div'); fontCell.className = 'theme-cell';
-  const fontCellLbl = document.createElement('span'); fontCellLbl.className = 'theme-cell-label'; fontCellLbl.textContent = 'Font';
-  const fontSel = document.createElement('select'); fontSel.className = 'theme-font-select';
-  FONT_OPTIONS.forEach(opt => {
-    const o = document.createElement('option'); o.value = opt.value; o.textContent = opt.label;
-    if ((editTheme.fontFamily || THEME_DEFAULTS.fontFamily) === opt.value) o.selected = true;
-    fontSel.appendChild(o);
-  });
-  fontSel.addEventListener('change', () => { editTheme.fontFamily = fontSel.value; applyNow(); });
-  fontCell.appendChild(fontCellLbl); fontCell.appendChild(fontSel);
-  fcGrid.appendChild(fontCell);
-  fcGroup.appendChild(fcGrid);
-  fcGroup.appendChild(mkSliderRow('Horizontal shift', 'indentSize', editTheme, 55, 5, 5));
-  panel.appendChild(fcGroup);
+  fcLayout.appendChild(fcGrid);
+  fcGroup.appendChild(fcLayout);
+  themeContent.appendChild(fcGroup);
 
   // ── Background ────────────────────────────────────────────────
-  const bgGroup = document.createElement('div'); bgGroup.className = 'theme-group';
+  const bgGroup = document.createElement('div'); bgGroup.className = 'theme-group theme-background-group';
   const bgTitle = document.createElement('div'); bgTitle.className = 'theme-group-title'; bgTitle.textContent = 'Background';
   bgGroup.appendChild(bgTitle);
   const bgIsColor = (editTheme.bgMode || 'color') !== 'image';
-  bgGroup.appendChild(mkToggle('Color', 'Image', bgIsColor, isColor => {
-    editTheme.bgMode = isColor ? 'color' : 'image'; applyNow(); renderThemePanel();
-  }));
-  if (!bgIsColor) {
-    const grid = document.createElement('div'); grid.className = 'bg-image-grid';
-    BG_LIBRARY.forEach(img => {
-      const thumb = document.createElement('div');
-      thumb.className = 'bg-image-thumb' + (editTheme.bgImageId === img.id ? ' selected' : '');
-      thumb.style.backgroundImage = `url('${img.url}')`;
-      const lbl = document.createElement('span'); lbl.className = 'bg-image-label';
-      lbl.textContent = img.label;
-      thumb.appendChild(lbl);
-      thumb.addEventListener('click', () => { editTheme.bgImageId = img.id; applyNow(); renderThemePanel(); });
-      grid.appendChild(thumb);
-    });
-    bgGroup.appendChild(grid);
-  } else {
-    bgGroup.appendChild(mkColorRow('Color', 'bg', editTheme));
-  }
-  panel.appendChild(bgGroup);
+  const grid = document.createElement('div'); grid.className = 'bg-image-grid';
+
+  const solidThumb = document.createElement('div');
+  solidThumb.className = 'bg-image-thumb bg-solid-thumb' + (bgIsColor ? ' selected' : '');
+  solidThumb.style.backgroundColor = editTheme.bg || THEME_DEFAULTS.bg;
+  const solidInput = document.createElement('input');
+  solidInput.type = 'color'; solidInput.className = 'bg-solid-color-input';
+  solidInput.value = editTheme.bg || THEME_DEFAULTS.bg;
+  solidInput.setAttribute('aria-label', 'Choose solid background color');
+  solidInput.addEventListener('input', () => {
+    editTheme.bgMode = 'color';
+    editTheme.bg = solidInput.value;
+    solidThumb.style.backgroundColor = solidInput.value;
+    grid.querySelectorAll('.bg-image-thumb').forEach(item => item.classList.toggle('selected', item === solidThumb));
+    applyNow();
+  });
+  const solidLabel = document.createElement('span'); solidLabel.className = 'bg-image-label';
+  solidLabel.textContent = 'Solid color';
+  solidThumb.appendChild(solidInput); solidThumb.appendChild(solidLabel); grid.appendChild(solidThumb);
+
+  BG_LIBRARY.forEach(img => {
+    const thumb = document.createElement('div');
+    thumb.className = 'bg-image-thumb' + (!bgIsColor && editTheme.bgImageId === img.id ? ' selected' : '');
+    thumb.style.backgroundImage = `url('${img.url}')`;
+    const lbl = document.createElement('span'); lbl.className = 'bg-image-label';
+    lbl.textContent = img.label;
+    thumb.appendChild(lbl);
+    thumb.addEventListener('click', () => { editTheme.bgMode = 'image'; editTheme.bgImageId = img.id; applyNow(); renderThemePanel(); });
+    grid.appendChild(thumb);
+  });
+  bgGroup.appendChild(grid);
+  themeLayout.appendChild(bgGroup);
 
   // ── Main Panel + Right Panel (side by side) ───────────────────
   const panelsRow = document.createElement('div'); panelsRow.className = 'theme-panels-row';
@@ -380,18 +514,121 @@ function renderThemePanel() {
 
   panelsRow.appendChild(mkPanelCol('Main Panel', 'mainBgMode', 'mainBg', 'mainBlur', 45));
   panelsRow.appendChild(mkPanelCol('Right Panel', 'rightBgMode', 'rightBg', 'rightBlur', 45));
-  panel.appendChild(panelsRow);
+  themeLayout.appendChild(panelsRow);
 }
 
-function addNotepad() {
-  if (userNotepadCount() >= MAX_USER_NOTEPADS) return;
+function addNotepad(kind = 'calendar') {
   let n = 1;
   while (notepads.some(np => np.key === 'nb' + n)) n++;
   const key = 'nb' + n;
-  notepads.push({ key, name: 'Notebook ' + n, emoji: '📝', nodes: [], theme: { ...THEME_DEFAULTS }, statuses: serializeStatuses() });
+  const isText = kind === 'text';
+  const isProjects = kind === 'projects';
+  const np = {
+    key,
+    name: isText ? 'Text ' + n : (isProjects ? 'Projects ' + n : 'Notebook ' + n),
+    emoji: isText ? '✍️' : (isProjects ? '📁' : '📝'),
+    kind: isText ? 'text' : (isProjects ? 'projects' : 'calendar'),
+    nodes: [],
+    theme: JSON.parse(JSON.stringify(theme)),
+    statuses: serializeStatuses()
+  };
+  if (isText) np.content = '';
+  notepads.push(np);
   editingNotepadKey = key;
   renderThemePanel();
   markDirtySettings();
+}
+
+function showAddNotepadMenu(event) {
+  event?.stopPropagation();
+  const existing = document.querySelector('.notepad-type-menu');
+  if (existing) {
+    existing._close?.();
+    return;
+  }
+
+  const trigger = event?.currentTarget || document.getElementById('add-notepad-btn');
+  if (!trigger) return;
+
+  const menu = document.createElement('div');
+  menu.className = 'notepad-type-menu';
+  menu.setAttribute('role', 'menu');
+  menu.setAttribute('aria-label', 'New notebook type');
+
+  const close = () => {
+    hideNotebookTypeTooltip();
+    trigger.setAttribute('aria-expanded', 'false');
+    menu.remove();
+    document.removeEventListener('pointerdown', closeOutside, true);
+    document.removeEventListener('keydown', closeOnEscape, true);
+    document.removeEventListener('scroll', close, true);
+    window.removeEventListener('resize', close);
+  };
+  const closeOutside = e => {
+    if (!menu.contains(e.target) && !trigger.contains(e.target)) close();
+  };
+  const closeOnEscape = e => {
+    if (e.key !== 'Escape') return;
+    e.preventDefault();
+    close();
+    trigger.focus();
+  };
+  menu._close = close;
+
+  const addChoice = (kind, label) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'notepad-type-menu-item';
+    button.setAttribute('role', 'menuitem');
+    const icon = document.createElement('img');
+    icon.className = 'notepad-type-menu-icon';
+    icon.src = 'images/notebook-types/' + kind + '.png';
+    icon.alt = '';
+    const name = document.createElement('span');
+    name.textContent = label;
+    button.appendChild(icon);
+    button.appendChild(name);
+    attachNotebookTypeTooltip(button, icon, notebookTypeDescription(kind));
+    button.addEventListener('click', () => { close(); addNotepad(kind); });
+    menu.appendChild(button);
+  };
+
+  addChoice('calendar', 'Weekly');
+  addChoice('projects', 'Projects');
+  addChoice('text', 'Rich text');
+
+  menu.addEventListener('keydown', e => {
+    const buttons = Array.from(menu.querySelectorAll('button'));
+    const current = buttons.indexOf(document.activeElement);
+    let next = null;
+    if (e.key === 'ArrowDown') next = current < buttons.length - 1 ? current + 1 : 0;
+    if (e.key === 'ArrowUp') next = current > 0 ? current - 1 : buttons.length - 1;
+    if (e.key === 'Home') next = 0;
+    if (e.key === 'End') next = buttons.length - 1;
+    if (next === null) return;
+    e.preventDefault();
+    buttons[next].focus();
+  });
+
+  document.body.appendChild(menu);
+  trigger.setAttribute('aria-expanded', 'true');
+  const triggerRect = trigger.getBoundingClientRect();
+  const menuRect = menu.getBoundingClientRect();
+  const gap = 6;
+  const margin = 8;
+  const left = Math.min(Math.max(triggerRect.right - menuRect.width, margin), window.innerWidth - menuRect.width - margin);
+  const below = triggerRect.bottom + gap;
+  const top = below + menuRect.height <= window.innerHeight - margin
+    ? below
+    : Math.max(margin, triggerRect.top - menuRect.height - gap);
+  menu.style.left = left + 'px';
+  menu.style.top = top + 'px';
+
+  document.addEventListener('pointerdown', closeOutside, true);
+  document.addEventListener('keydown', closeOnEscape, true);
+  document.addEventListener('scroll', close, true);
+  window.addEventListener('resize', close);
+  requestAnimationFrame(() => menu.querySelector('button')?.focus());
 }
 
 function removeNotepad(key) {

@@ -414,7 +414,13 @@ function render() {
   const editor = document.getElementById('editor');
   if (!gutter || !content) return;
 
-  editor.classList.remove('notepad-mode');
+  if (isTextNotepad()) {
+    renderRichTextNotebook(editor, gutter, content);
+    buildTodoPanel();
+    return;
+  }
+
+  editor.classList.remove('notepad-mode', 'text-notepad-mode');
   editor.classList.toggle('projects-mode', isProjectsNotepad());
   const rows = searchQuery ? buildSearchRows() : (viewMode === 'status' ? buildStatusRows() : buildRows());
   gutter.innerHTML = '';
@@ -641,7 +647,7 @@ function buildProjectStatusRows() {
     });
   }
 
-  const np = notepads.find(n => n.key === PROJECTS_NOTEPAD_KEY);
+  const np = notepads.find(n => n.key === activeNotepad);
   if (np && !np.collapsedStatusGroups) np.collapsedStatusGroups = {};
   displayOrder().forEach(status => {
     const projects = byStatus[status];
@@ -1304,7 +1310,7 @@ function switchNotebook(key) {
     const _si = document.getElementById('search-input');
     if (_si) _si.value = '';
     applyActiveTheme();
-    if (!isProjectsNotepad()) checkAndCreateCurrentWeek();
+    if (isCalendarNotepad()) checkAndCreateCurrentWeek();
     render();
     // Fade in: set opacity 0 instantly (no transition), then let transition animate to 1
     const mc2 = document.getElementById('content');
@@ -1334,38 +1340,47 @@ function buildRightTabs() {
   nbLeft.innerHTML = '';
   nbRight.innerHTML = '';
 
+  if (isTextNotepad()) {
+    const textLabel = document.createElement('span');
+    textLabel.className = 'text-view-label';
+    textLabel.textContent = 'Rich text';
+    nbRight.appendChild(textLabel);
+  }
+
   // Right half: View toggle — labels on sides, knob in middle
-  const vs = document.createElement('div');
-  vs.className = 'view-switch' + (viewMode === 'status' ? ' right' : '');
+  if (!isTextNotepad()) {
+    const vs = document.createElement('div');
+    vs.className = 'view-switch' + (viewMode === 'status' ? ' right' : '');
 
-  const lblAcc = document.createElement('span');
-  lblAcc.className = 'view-label' + (viewMode !== 'status' ? ' active' : '');
-  lblAcc.textContent = 'Acc';
+    const lblAcc = document.createElement('span');
+    lblAcc.className = 'view-label' + (viewMode !== 'status' ? ' active' : '');
+    lblAcc.textContent = 'Acc';
 
-  const tog = document.createElement('div');
-  tog.className = 'view-toggle';
-  const knob = document.createElement('div');
-  knob.className = 'view-knob';
-  tog.appendChild(knob);
+    const tog = document.createElement('div');
+    tog.className = 'view-toggle';
+    const knob = document.createElement('div');
+    knob.className = 'view-knob';
+    tog.appendChild(knob);
 
-  const lblStatus = document.createElement('span');
-  lblStatus.className = 'view-label' + (viewMode === 'status' ? ' active' : '');
-  lblStatus.textContent = 'Status';
+    const lblStatus = document.createElement('span');
+    lblStatus.className = 'view-label' + (viewMode === 'status' ? ' active' : '');
+    lblStatus.textContent = 'Status';
 
-  const setView = (isStatus) => {
-    viewMode = isStatus ? 'status' : 'acc';
-    vs.classList.toggle('right', isStatus);
-    lblAcc.classList.toggle('active', !isStatus);
-    lblStatus.classList.toggle('active', isStatus);
-    render();
-  };
-  // Any click anywhere on the switch area toggles between the two states
-  vs.addEventListener('click', () => setView(!vs.classList.contains('right')));
+    const setView = (isStatus) => {
+      viewMode = isStatus ? 'status' : 'acc';
+      vs.classList.toggle('right', isStatus);
+      lblAcc.classList.toggle('active', !isStatus);
+      lblStatus.classList.toggle('active', isStatus);
+      render();
+    };
+    // Any click anywhere on the switch area toggles between the two states
+    vs.addEventListener('click', () => setView(!vs.classList.contains('right')));
 
-  vs.appendChild(lblAcc);
-  vs.appendChild(tog);
-  vs.appendChild(lblStatus);
-  nbRight.appendChild(vs);
+    vs.appendChild(lblAcc);
+    vs.appendChild(tog);
+    vs.appendChild(lblStatus);
+    nbRight.appendChild(vs);
+  }
 
   // Left half: notebook tabs — clicking the area cycles; clicking a tab icon navigates directly
   nbLeft.addEventListener('click', () => cycleNotebook(1));
@@ -1591,6 +1606,20 @@ function buildTodoPanel() {
   const prevScrollTop = el.scrollTop;
   el.innerHTML = '';
 
+  const textMode = isTextNotepad();
+  const searchBar = document.getElementById('search-bar');
+  const searchInput = document.getElementById('search-input');
+  const todoTitle = document.getElementById('todo-title');
+  const mobileTodoTab = document.getElementById('mt-todo');
+  searchBar?.classList.toggle('text-notepad-search-hidden', textMode);
+  if (searchInput) searchInput.disabled = textMode;
+  if (todoTitle) todoTitle.textContent = textMode ? '✍️ Text' : '⚠️ To-Do';
+  if (mobileTodoTab) mobileTodoTab.textContent = textMode ? 'Format' : 'To-Do';
+  if (textMode) {
+    renderRichTextInfoPanel(el);
+    return;
+  }
+
   const projectsMode = isProjectsNotepad();
   const weeks = [];
   let curWeek = projectsMode ? { label: 'Projects', accs: [] } : null;
@@ -1660,7 +1689,7 @@ function buildTodoPanel() {
 
     sec.weeks.forEach(week => {
       if (sec.key === 'sec_older') {
-        const is = theme.indentSize || 18;
+        const is = FIXED_INDENT_SIZE;
         const wlbl = mk('div', 'height:18px;display:flex;align-items:center;padding:0 8px 0 ' + (2 * is) + 'px;font-size:var(--fs-week);color:#4a5570;user-select:none;');
         wlbl.textContent = week.label;
         el.appendChild(wlbl);
@@ -1672,7 +1701,7 @@ function buildTodoPanel() {
 
         const hdr = document.createElement('div');
         hdr.className = 'todo-acc-header';
-        const is = theme.indentSize || 18;
+        const is = FIXED_INDENT_SIZE;
         hdr.style.paddingLeft = projectsMode ? '8px' : (3 * is - 10) + 'px';
 
         const tog = document.createElement('span');
@@ -1698,7 +1727,7 @@ function buildTodoPanel() {
         if (!isColA) items.forEach(t => {
           const row = document.createElement('div');
           row.className = 'todo-item';
-          const is = theme.indentSize || 18;
+          const is = FIXED_INDENT_SIZE;
           row.style.paddingLeft = projectsMode ? (is + 23) + 'px' : (4 * is - 10 + 15) + 'px';
 
           const txt = document.createElement('span');

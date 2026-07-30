@@ -11,11 +11,11 @@ const LEVEL_WEEK = 3;
 const LEVEL_ACCOUNT = 4;
 const LEVEL_TASK = 5;
 const LEVEL_SUB = 6;
+const FIXED_INDENT_SIZE = 15;
 
 const PROJECTS_NOTEPAD_KEY = 'projects';
 const PROJECTS_NOTEPAD_NAME = 'Projects';
 const PROJECTS_NOTEPAD_EMOJI = '⌛️';
-const MAX_USER_NOTEPADS = 2;
 
 const FONT_OPTIONS = [
   { label: 'Menlo / Mono (default)', value: "'Menlo','Monaco','Courier New',monospace" },
@@ -56,7 +56,7 @@ const BG_LIBRARY = [
 
 const THEME_DEFAULTS = {
   bg: '#111418', mainBg: '#272d36', rightBg: '#0d1118', notepadBg: '#1a1f27',
-  mainBlur: 20, rightBlur: 40, indentSize: 18,
+  mainBlur: 20, rightBlur: 40, indentSize: FIXED_INDENT_SIZE,
   yearColor: '#ffffff', quarterColor: '#c7e8f3', monthColor: '#aad4e8', weekColor: '#88c0d0', accountColor: '#c2185b', textColor: '#cdd6f4',
   yearSize: 16, quarterSize: 14, monthSize: 14, weekSize: 13, accountSize: 13, textSize: 13,
   allFontSize: 0,
@@ -79,7 +79,7 @@ let weekCheckTimer = null;
 let isSaving = false;
 let todoCollapsed = {};
 let theme = { ...THEME_DEFAULTS };
-let notepads = [];        // built-in Projects + extra notebooks: [{key, name, emoji, nodes:[], statuses:[]}]
+let notepads = [];        // built-in Projects + calendar/text notebooks: [{key, name, emoji, kind, content?, nodes:[], statuses:[]}]
 let activeNotepad = null; // null = main notebook, else notebook key
 let mainNodes = [];       // backup of main nodes while viewing extra notebook
 let mainStatuses = [];    // backup of main statuses while viewing extra notebook
@@ -172,16 +172,33 @@ function serializeStatuses() {
   }));
 }
 
+function enforceFixedIndentSize(th) {
+  if (!th || typeof th !== 'object') return false;
+  const changed = th.indentSize !== FIXED_INDENT_SIZE;
+  th.indentSize = FIXED_INDENT_SIZE;
+  return changed;
+}
+
 function isProjectsNotepad(key = activeNotepad) {
-  return key === PROJECTS_NOTEPAD_KEY;
+  return notepadKind(key) === 'projects';
+}
+
+function notepadKind(key = activeNotepad) {
+  if (key === null) return 'calendar';
+  if (key === PROJECTS_NOTEPAD_KEY) return 'projects';
+  return notepads.find(np => np.key === key)?.kind || 'calendar';
+}
+
+function isTextNotepad(key = activeNotepad) {
+  return notepadKind(key) === 'text';
+}
+
+function isCalendarNotepad(key = activeNotepad) {
+  return notepadKind(key) === 'calendar';
 }
 
 function isPermanentNotepad(key) {
   return key === PROJECTS_NOTEPAD_KEY;
-}
-
-function userNotepadCount() {
-  return notepads.filter(np => !isPermanentNotepad(np.key)).length;
 }
 
 function makeProjectsNotepad(statuses = serializeStatuses()) {
@@ -209,14 +226,14 @@ function ensureProjectsNotepad(statuses = serializeStatuses()) {
     changed = true;
   }
   const fixed = {
-    name: PROJECTS_NOTEPAD_NAME,
-    emoji: PROJECTS_NOTEPAD_EMOJI,
     kind: 'projects',
     permanent: true
   };
   Object.entries(fixed).forEach(([key, value]) => {
     if (np[key] !== value) { np[key] = value; changed = true; }
   });
+  if (typeof np.name !== 'string') { np.name = PROJECTS_NOTEPAD_NAME; changed = true; }
+  if (typeof np.emoji !== 'string') { np.emoji = PROJECTS_NOTEPAD_EMOJI; changed = true; }
   if (!Array.isArray(np.nodes)) { np.nodes = []; changed = true; }
   if (!Array.isArray(np.statuses) || !np.statuses.length) {
     np.statuses = JSON.parse(JSON.stringify(statuses));
@@ -234,6 +251,7 @@ function displayOrder() {
 
 function applyTheme(t) {
   const th = t || theme;
+  enforceFixedIndentSize(th);
   const r = document.documentElement.style;
   const D = THEME_DEFAULTS;
 
@@ -264,7 +282,7 @@ function applyTheme(t) {
     r.setProperty('--c-right-blur', '0px');
   }
 
-  r.setProperty('--indent-size', (th.indentSize ?? D.indentSize) + 'px');
+  r.setProperty('--indent-size', FIXED_INDENT_SIZE + 'px');
 
   r.setProperty('--c-year',    th.yearColor    || D.yearColor);
   r.setProperty('--c-quarter', th.quarterColor || D.quarterColor);
@@ -282,7 +300,8 @@ function applyTheme(t) {
   r.setProperty('--fs-week',    (all || th.weekSize    || D.weekSize)    + 'px');
   r.setProperty('--fs-account', (all || th.accountSize || D.accountSize) + 'px');
   r.setProperty('--fs-text',    (all || th.textSize    || D.textSize)    + 'px');
-  r.setProperty('--c-font', th.fontFamily || D.fontFamily);
+  // Font family is global; notebook themes only override colors and sizes.
+  r.setProperty('--c-font', theme.fontFamily || D.fontFamily);
 
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', th.bg || D.bg);
 }

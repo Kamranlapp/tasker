@@ -118,6 +118,11 @@ function restoreOfflineSnapshot(snapshot) {
   currentUser = snapshot.user;
   theme = { ...THEME_DEFAULTS, ...(snapshot.theme || {}) };
   notepads = Array.isArray(snapshot.notepads) ? snapshot.notepads : [];
+  let fixedIndentChanged = enforceFixedIndentSize(theme);
+  notepads.forEach(np => {
+    if (!np.theme) { np.theme = { ...THEME_DEFAULTS }; fixedIndentChanged = true; }
+    if (enforceFixedIndentSize(np.theme)) fixedIndentChanged = true;
+  });
   todoCollapsed = snapshot.todoCollapsed || {};
   ensureProjectsNotepad(snapshot.mainStatuses);
 
@@ -146,7 +151,7 @@ function restoreOfflineSnapshot(snapshot) {
 
   dirtyTree = !!snapshot.pending?.tree;
   dirtyUI = !!snapshot.pending?.ui;
-  dirtySettings = !!snapshot.pending?.settings;
+  dirtySettings = !!snapshot.pending?.settings || fixedIndentChanged;
   if (dirtyTree) dirtyTreeVersion++;
   if (dirtyUI) dirtyUIVersion++;
   if (dirtySettings) dirtySettingsVersion++;
