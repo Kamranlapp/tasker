@@ -79,10 +79,6 @@ html,body{width:100%;height:100%;background-color:var(--c-bg);overflow:hidden;fo
   content:'';position:absolute;inset:0;
   background:rgba(8,12,18,0.38);
 }
-#login-screen::before{
-  content:'';position:absolute;inset:0;
-  background:rgba(8,12,18,0.38);
-}
 #login-box{
   position:relative;
   width:min(430px,100%);
@@ -102,12 +98,7 @@ html,body{width:100%;height:100%;background-color:var(--c-bg);overflow:hidden;fo
   backdrop-filter:blur(24px) saturate(132%) contrast(104%);
   -webkit-backdrop-filter:blur(24px) saturate(132%) contrast(104%);
 }
-#login-box::before{
-  content:none;
-}
-#login-box::after{
-  content:none;
-}
+#login-box::before,#login-box::after{content:none;}
 .login-title{
   position:relative;z-index:1;
   width:calc(100% + 20px);
@@ -653,7 +644,6 @@ textarea.row-edit-multi{resize:none;overflow:hidden;line-height:1.4;padding:4px 
     padding:42px 28px 34px; border-radius:30px;
     transform:none;
   }
-  #login-box::before{inset:8px;border-radius:23px;}
   .login-title{width:calc(100% + 8px);font-size:68px;margin-bottom:22px;background-attachment:scroll;}
   .login-app-icon{width:112px;height:112px;border-radius:24px;margin-bottom:28px;}
   #login-btn{padding:14px;font-size:15px;}
@@ -753,6 +743,12 @@ textarea.row-edit-multi{resize:none;overflow:hidden;line-height:1.4;padding:4px 
   #left-wrap .row.row-group{padding-left:20px;}
   #left-wrap .row.level-5{padding-left:10px;}
   #left-wrap .row.level-6{padding-left:20px;}
+  #editor.projects-mode .row.level-4{padding-left:0;}
+  #editor.projects-mode .row.project-account-group{padding-left:10px;}
+  #editor.projects-mode .row.project-status-group{padding-left:0;}
+  #editor.projects-mode .row.level-4.project-status-child{padding-left:10px;}
+  #editor.projects-mode .row.level-5.project-status-child{padding-left:20px;}
+  #editor.projects-mode .row.level-6.project-status-child{padding-left:30px;}
   /* Cancel the extra 15px spacer that render.js inserts on task/sub-entry rows */
   #left-wrap .row.level-5 > span[style*="15px"],
   #left-wrap .row.level-6 > span[style*="15px"]{display:none;}

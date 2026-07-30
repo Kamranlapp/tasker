@@ -1,25 +1,25 @@
 // ── Tasker application shell cache ─────────────────────────────
-const CACHE_NAME = 'tasker-shell-v212';
+const CACHE_NAME = 'tasker-shell-v2100';
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.json',
   './Icon.png',
-  './css/style.css?v=212',
-  './js/vendor/supabase.js?v=212',
-  './js/vendor/supabase-global.js?v=212',
-  './js/db.js?v=212',
-  './js/state.js?v=212',
-  './js/offline.js?v=212',
-  './js/sync.js?v=212',
-  './js/tree.js?v=212',
-  './js/picker.js?v=212',
-  './js/settings.js?v=212',
-  './js/backup.js?v=212',
-  './js/render.js?v=212',
-  './js/hints.js?v=212',
-  './js/onboarding.js?v=212',
-  './js/app.js?v=212'
+  './css/style.css?v=2100',
+  './js/vendor/supabase.js?v=2100',
+  './js/vendor/supabase-global.js?v=2100',
+  './js/db.js?v=2100',
+  './js/state.js?v=2100',
+  './js/offline.js?v=2100',
+  './js/sync.js?v=2100',
+  './js/tree.js?v=2100',
+  './js/picker.js?v=2100',
+  './js/settings.js?v=2100',
+  './js/backup.js?v=2100',
+  './js/render.js?v=2100',
+  './js/hints.js?v=2100',
+  './js/onboarding.js?v=2100',
+  './js/app.js?v=2100'
 ];
 
 self.addEventListener('install', event => {

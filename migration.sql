@@ -1,4 +1,70 @@
 -- ══════════════════════════════════════════════════════════════
+
+-- 8. Session heartbeat repair (run once).
+-- Keeps the newest row for each user/device pair and prevents future duplicates.
+-- The trigger is a compatibility layer for clients that still have an older
+-- cached version of Tasker open while v2.0.13 rolls out.
+BEGIN;
+
+CREATE SCHEMA IF NOT EXISTS maintenance;
+REVOKE ALL ON SCHEMA maintenance FROM PUBLIC, anon, authenticated;
+
+CREATE TABLE IF NOT EXISTS maintenance.sessions_backup_20260730
+AS TABLE public.sessions WITH DATA;
+REVOKE ALL ON TABLE maintenance.sessions_backup_20260730 FROM PUBLIC, anon, authenticated;
+
+WITH ranked AS (
+  SELECT
+    id,
+    row_number() OVER (
+      PARTITION BY user_id, device_token
+      ORDER BY last_seen DESC NULLS LAST, created_at DESC NULLS LAST, id DESC
+    ) AS duplicate_rank
+  FROM public.sessions
+)
+DELETE FROM public.sessions s
+USING ranked r
+WHERE s.id = r.id
+  AND r.duplicate_rank > 1;
+
+ALTER TABLE public.sessions
+  ADD CONSTRAINT sessions_user_device_key UNIQUE (user_id, device_token);
+
+CREATE OR REPLACE FUNCTION public.tasker_merge_session_heartbeat()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+BEGIN
+  UPDATE public.sessions
+  SET last_seen = GREATEST(
+    COALESCE(last_seen, '-infinity'::timestamptz),
+    COALESCE(NEW.last_seen, now())
+  )
+  WHERE user_id = NEW.user_id
+    AND device_token = NEW.device_token;
+
+  IF FOUND THEN
+    RETURN NULL;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS sessions_merge_heartbeat_before_insert ON public.sessions;
+CREATE TRIGGER sessions_merge_heartbeat_before_insert
+BEFORE INSERT ON public.sessions
+FOR EACH ROW
+EXECUTE FUNCTION public.tasker_merge_session_heartbeat();
+
+COMMIT;
+
+-- Verification:
+-- SELECT count(*) AS rows,
+--        count(DISTINCT (user_id, device_token)) AS device_pairs
+-- FROM public.sessions;
+-- Expected after the 2026-07-30 cleanup: both values are 26.
 -- Migration: Add theme, admin role, notepads support, Google login mapping
 -- Run this in Supabase SQL Editor (Dashboard → SQL Editor → New Query)
 -- ══════════════════════════════════════════════════════════════
