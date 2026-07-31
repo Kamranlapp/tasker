@@ -130,21 +130,38 @@ html,body{width:100%;height:100%;background-color:var(--c-bg);overflow:hidden;fo
 }
 #login-btn{
   position:relative;z-index:1;
-  width:min(290px,100%);padding:14px 18px;border-radius:999px;border:1px solid rgba(255,255,255,0.48);
-  background:#18aeca;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',sans-serif;
-  font-size:15px;font-weight:600;cursor:pointer;
-  box-shadow:0 14px 30px rgba(12,120,143,0.24), inset 0 1px 0 rgba(255,255,255,0.32);
+  width:min(290px,100%);padding:13px 18px;border:2px solid transparent;border-radius:999px;
+  background:
+    linear-gradient(rgba(255,255,255,0.27),rgba(255,255,255,0.09)) padding-box,
+    conic-gradient(from 0deg,#ef476f 0deg,#7450dc 70deg,#2474d8 110deg,#20b97c 180deg,#1f79dc 270deg,#ef476f 360deg) border-box;
+  color:rgba(255,255,255,0.82);
+  font-family:'Raleway','Helvetica Neue',sans-serif;
+  font-size:15px;font-weight:300;letter-spacing:0.01em;cursor:pointer;
+  text-shadow:-1px -1px 0 rgba(20,56,64,0.28),1px 1px 0 rgba(255,255,255,0.32);
+  box-shadow:inset -1px -1px 0 rgba(20,56,64,0.32),inset 1px 1px 0 rgba(255,255,255,0.82),0 8px 18px rgba(22,53,59,0.1);
+  backdrop-filter:blur(42px) saturate(180%);
+  -webkit-backdrop-filter:blur(42px) saturate(180%);
   transition:transform 0.15s ease,background 0.15s ease,box-shadow 0.15s ease;
 }
-#login-btn:hover{background:#16bfdc;box-shadow:0 18px 36px rgba(12,120,143,0.28), inset 0 1px 0 rgba(255,255,255,0.36);transform:translateY(-1px);}
+#login-btn::before{
+  content:'';position:absolute;inset:-2px;border-radius:inherit;padding:2px;pointer-events:none;
+  background:conic-gradient(from 0deg,#ef476f 0deg,#7450dc 70deg,#2474d8 110deg,#20b97c 180deg,#1f79dc 270deg,#ef476f 360deg);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+}
+#login-btn:hover{
+  background:
+    linear-gradient(rgba(255,255,255,0.42),rgba(255,255,255,0.18)) padding-box,
+    conic-gradient(from 0deg,#ef476f 0deg,#7450dc 70deg,#2474d8 110deg,#20b97c 180deg,#1f79dc 270deg,#ef476f 360deg) border-box;
+  transform:translateY(-1px);
+  box-shadow:inset -1px -1px 0 rgba(20,56,64,0.22),inset 1px 1px 0 rgba(255,255,255,0.46),0 10px 22px rgba(22,53,59,0.13);
+}
+#login-btn:hover::before{filter:brightness(1.12) saturate(1.08);}
 #login-btn:active{transform:translateY(0);}
 #login-btn:disabled{cursor:default;opacity:0.82;transform:none;}
 .google-login-btn{display:flex;align-items:center;justify-content:center;gap:10px;}
 .google-mark{
-  display:inline-flex;align-items:center;justify-content:center;
-  width:24px;height:24px;border-radius:50%;background:#fff;color:#4285f4;
-  font-family:Arial,sans-serif;font-size:16px;font-weight:bold;line-height:1;
-  box-shadow:0 2px 7px rgba(7,31,37,0.12);
+  display:block;width:24px;height:24px;object-fit:contain;
 }
 #login-error{position:relative;z-index:1;color:#a83827;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',sans-serif;font-size:12px;margin-top:16px;text-align:center;min-height:18px;}
 .login-spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.42);border-top-color:#ffffff;border-radius:50%;animation:spin 0.6s linear infinite;margin-right:6px;}
@@ -646,7 +663,7 @@ textarea.row-edit-multi{resize:none;overflow:hidden;line-height:1.4;padding:4px 
   }
   .login-title{width:calc(100% + 8px);font-size:68px;margin-bottom:22px;background-attachment:scroll;}
   .login-app-icon{width:112px;height:112px;border-radius:24px;margin-bottom:28px;}
-  #login-btn{padding:14px;font-size:15px;}
+  #login-btn{padding:13px 18px;font-size:15px;}
   #login-error{font-size:12px;}
 
   /* ── App: tabs + panel stacking ── */
