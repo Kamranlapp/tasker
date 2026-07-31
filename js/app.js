@@ -29,7 +29,7 @@ async function doLogin() {
   } catch (e) {
     showLoginError('Error: ' + e.message);
     console.error('Login error:', e);
-    btn.innerHTML = '<span class="google-mark">G</span>Continue with Google';
+    btn.innerHTML = '<img class="google-mark" src="images/google-g.png" alt="" aria-hidden="true">Continue with Google';
     btn.disabled = false;
   }
 }
@@ -122,7 +122,7 @@ function showLogin() {
   document.getElementById('app').classList.remove('open');
   document.getElementById('settings-screen').classList.remove('open');
   document.getElementById('login-screen').style.display = 'flex';
-  document.getElementById('login-btn').innerHTML = '<span class="google-mark">G</span>Continue with Google';
+  document.getElementById('login-btn').innerHTML = '<img class="google-mark" src="images/google-g.png" alt="" aria-hidden="true">Continue with Google';
   document.getElementById('login-btn').disabled = false;
   document.getElementById('login-error').textContent = '';
 }
@@ -256,7 +256,7 @@ window.addEventListener('drop', e => { if (e.dataTransfer?.files?.length) e.prev
 (async () => {
   if ('serviceWorker' in navigator) {
     try {
-      await navigator.serviceWorker.register('./sw.js?v=2203');
+      await navigator.serviceWorker.register('./sw.js?v=2204');
     } catch (e) {
       console.warn('Service worker registration failed:', e);
     }
