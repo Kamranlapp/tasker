@@ -1,10 +1,11 @@
 // ── Tasker application shell cache ─────────────────────────────
-const CACHE_NAME = 'tasker-shell-v2203';
+const CACHE_NAME = 'tasker-shell-v2203-icons1';
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.json',
-  './Icon.png',
+  './Icon.png?v=2203-icons1',
+  './FavIcon.png?v=2203-icons1',
   './css/style.css?v=2203',
   './fonts/raleway-300.woff2',
   './fonts/raleway-600.woff2',
