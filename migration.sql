@@ -1,5 +1,101 @@
 -- ══════════════════════════════════════════════════════════════
 
+-- 9. Automatically create an app profile after the first Google login.
+-- Run this section before deploying v2.1.2.
+CREATE OR REPLACE FUNCTION public.tasker_create_google_user()
+RETURNS TABLE (
+  id uuid,
+  email text,
+  auth_user_id uuid,
+  display_name text,
+  role text
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  login_email text := lower(NULLIF(btrim(auth.jwt() ->> 'email'), ''));
+  login_name text;
+BEGIN
+  IF auth.uid() IS NULL
+    OR login_email IS NULL
+    OR auth.jwt() -> 'app_metadata' ->> 'provider' IS DISTINCT FROM 'google'
+  THEN
+    RAISE EXCEPTION 'A verified Google session with an email address is required'
+      USING ERRCODE = '42501';
+  END IF;
+
+  login_name := COALESCE(
+    NULLIF(btrim(auth.jwt() -> 'user_metadata' ->> 'full_name'), ''),
+    NULLIF(btrim(auth.jwt() -> 'user_metadata' ->> 'name'), ''),
+    split_part(login_email, '@', 1)
+  );
+
+  -- A retry or a second browser tab should return the existing profile.
+  RETURN QUERY
+  SELECT u.id, u.email, u.auth_user_id, u.display_name, u.role
+  FROM public.users u
+  WHERE u.auth_user_id = auth.uid()
+  LIMIT 1;
+  IF FOUND THEN RETURN; END IF;
+
+  -- Preserve accounts that an admin created in advance for this email.
+  RETURN QUERY
+  UPDATE public.users u
+  SET
+    auth_user_id = auth.uid(),
+    email = login_email,
+    display_name = COALESCE(NULLIF(btrim(u.display_name), ''), login_name)
+  WHERE u.auth_user_id IS NULL
+    AND lower(u.email) = login_email
+  RETURNING u.id, u.email, u.auth_user_id, u.display_name, u.role;
+  IF FOUND THEN RETURN; END IF;
+
+  -- The row may have been linked by a concurrent request while UPDATE waited.
+  RETURN QUERY
+  SELECT u.id, u.email, u.auth_user_id, u.display_name, u.role
+  FROM public.users u
+  WHERE u.auth_user_id = auth.uid()
+    AND lower(u.email) = login_email
+  LIMIT 1;
+  IF FOUND THEN RETURN; END IF;
+
+  -- Never let a different Google identity take over an already linked email.
+  IF EXISTS (
+    SELECT 1
+    FROM public.users u
+    WHERE lower(u.email) = login_email
+  ) THEN
+    RAISE EXCEPTION 'This email is already linked to another Google account'
+      USING ERRCODE = '23505';
+  END IF;
+
+  BEGIN
+    RETURN QUERY
+    INSERT INTO public.users AS u (email, auth_user_id, display_name, role)
+    VALUES (login_email, auth.uid(), login_name, 'user')
+    RETURNING u.id, u.email, u.auth_user_id, u.display_name, u.role;
+  EXCEPTION WHEN unique_violation THEN
+    -- Handle two simultaneous first-login requests without creating duplicates.
+    RETURN QUERY
+    SELECT u.id, u.email, u.auth_user_id, u.display_name, u.role
+    FROM public.users u
+    WHERE u.auth_user_id = auth.uid()
+      AND lower(u.email) = login_email
+    LIMIT 1;
+    IF NOT FOUND THEN RAISE; END IF;
+  END;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.tasker_create_google_user() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.tasker_create_google_user() TO authenticated;
+
+-- Verification (run while signed in as a new Google user):
+-- SELECT public.tasker_create_google_user();
+-- Repeating the call must return the same row without adding a duplicate.
+
 -- 8. Session heartbeat repair (run once).
 -- Keeps the newest row for each user/device pair and prevents future duplicates.
 -- The trigger is a compatibility layer for clients that still have an older
