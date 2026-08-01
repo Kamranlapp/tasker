@@ -66,6 +66,7 @@ async function tryAutoLogin() {
   } catch (e) {
     console.error('Auto login failed:', e);
     if (!navigator.onLine) showLoginError('No offline session is available. Connect once to sign in.');
+    else showLoginError('Task Tracker could not finish signing you in. Please try again.');
     return false;
   }
 }
@@ -82,9 +83,14 @@ async function loadAppUserFromGoogle(authUser) {
     users = await sb.get('users', `?email=eq.${encodeURIComponent(email)}&select=id,email,auth_user_id,display_name,role`);
   }
   if (!users.length) {
-    await supabaseAuth.auth.signOut();
-    showLoginError(`No Task Tracker account is linked to ${email}.`);
-    return false;
+    const created = await sb.query('rpc/tasker_create_google_user', 'POST', {});
+    if (!created.length) {
+      await supabaseAuth.auth.signOut();
+      showLoginError(`A Task Tracker account could not be created for ${email}.`);
+      return false;
+    }
+    currentUser = created[0];
+    return true;
   }
 
   const user = users[0];
@@ -256,7 +262,7 @@ window.addEventListener('drop', e => { if (e.dataTransfer?.files?.length) e.prev
 (async () => {
   if ('serviceWorker' in navigator) {
     try {
-      await navigator.serviceWorker.register('./sw.js?v=2204');
+      await navigator.serviceWorker.register('./sw.js?v=2205');
     } catch (e) {
       console.warn('Service worker registration failed:', e);
     }

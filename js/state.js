@@ -65,6 +65,29 @@ const THEME_DEFAULTS = {
   mainBgMode: 'color', rightBgMode: 'color'
 };
 
+const MAIN_NOTEBOOK_THEME_DEFAULTS = {
+  ...THEME_DEFAULTS,
+  mainBlur: 5,
+  rightBlur: 10,
+  yearColor: '#c2ecff',
+  quarterColor: '#c7e8f3',
+  monthColor: '#c2ecff',
+  weekColor: '#c2ecff',
+  accountColor: '#7d93d4',
+  textColor: '#eeede7',
+  yearSize: 15,
+  quarterSize: 14,
+  monthSize: 15,
+  weekSize: 14,
+  accountSize: 14,
+  textSize: 14,
+  fontFamily: "'Roboto',sans-serif",
+  bgMode: 'image',
+  bgImageId: 'bg7',
+  mainBgMode: 'blur',
+  rightBgMode: 'blur'
+};
+
 // ── Mutable State ──────────────────────────────────────────────
 let currentUser = null;
 let nodes = [];

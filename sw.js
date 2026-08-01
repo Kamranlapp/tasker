@@ -1,12 +1,12 @@
 // ── Tasker application shell cache ─────────────────────────────
-const CACHE_NAME = 'tasker-shell-v2204';
+const CACHE_NAME = 'tasker-shell-v2205';
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.json',
   './Icon.png?v=2203-icons1',
   './FavIcon.png?v=2203-icons1',
-  './css/style.css?v=2204',
+  './css/style.css?v=2205',
   './fonts/raleway-300.woff2',
   './fonts/raleway-600.woff2',
   './images/login-background.avif',
@@ -14,21 +14,21 @@ const APP_SHELL = [
   './images/notebook-types/calendar.png',
   './images/notebook-types/projects.png',
   './images/notebook-types/text.png',
-  './js/vendor/supabase.js?v=2204',
-  './js/vendor/supabase-global.js?v=2204',
-  './js/db.js?v=2204',
-  './js/state.js?v=2204',
-  './js/offline.js?v=2204',
-  './js/sync.js?v=2204',
-  './js/tree.js?v=2204',
-  './js/picker.js?v=2204',
-  './js/settings.js?v=2204',
-  './js/richtext.js?v=2204',
-  './js/backup.js?v=2204',
-  './js/render.js?v=2204',
-  './js/hints.js?v=2204',
-  './js/onboarding.js?v=2204',
-  './js/app.js?v=2204'
+  './js/vendor/supabase.js?v=2205',
+  './js/vendor/supabase-global.js?v=2205',
+  './js/db.js?v=2205',
+  './js/state.js?v=2205',
+  './js/offline.js?v=2205',
+  './js/sync.js?v=2205',
+  './js/tree.js?v=2205',
+  './js/picker.js?v=2205',
+  './js/settings.js?v=2205',
+  './js/richtext.js?v=2205',
+  './js/backup.js?v=2205',
+  './js/render.js?v=2205',
+  './js/hints.js?v=2205',
+  './js/onboarding.js?v=2205',
+  './js/app.js?v=2205'
 ];
 
 self.addEventListener('install', event => {
