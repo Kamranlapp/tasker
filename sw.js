@@ -1,26 +1,26 @@
 // ── Tasker application shell cache ─────────────────────────────
-const CACHE_NAME = 'tasker-shell-v2102';
+const CACHE_NAME = 'tasker-shell-v2103';
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.json',
   './Icon.png',
-  './css/style.css?v=2102',
-  './GoogleG.svg?v=2102',
-  './js/vendor/supabase.js?v=2102',
-  './js/vendor/supabase-global.js?v=2102',
-  './js/db.js?v=2102',
-  './js/state.js?v=2102',
-  './js/offline.js?v=2102',
-  './js/sync.js?v=2102',
-  './js/tree.js?v=2102',
-  './js/picker.js?v=2102',
-  './js/settings.js?v=2102',
-  './js/backup.js?v=2102',
-  './js/render.js?v=2102',
-  './js/hints.js?v=2102',
-  './js/onboarding.js?v=2102',
-  './js/app.js?v=2102'
+  './css/style.css?v=2103',
+  './GoogleG.svg?v=2103',
+  './js/vendor/supabase.js?v=2103',
+  './js/vendor/supabase-global.js?v=2103',
+  './js/db.js?v=2103',
+  './js/state.js?v=2103',
+  './js/offline.js?v=2103',
+  './js/sync.js?v=2103',
+  './js/tree.js?v=2103',
+  './js/picker.js?v=2103',
+  './js/settings.js?v=2103',
+  './js/backup.js?v=2103',
+  './js/render.js?v=2103',
+  './js/hints.js?v=2103',
+  './js/onboarding.js?v=2103',
+  './js/app.js?v=2103'
 ];
 
 self.addEventListener('install', event => {

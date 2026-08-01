@@ -256,8 +256,9 @@ async function loadUserDataFromRemote() {
     if (ensureProjectsNotepad(mainStatuses)) markDirtySettings();
   } else {
     const defaultStatuses = STATUSES.map(s => ({ key: s, label: S_LABEL[s], icon: S_ICON[s] }));
+    theme = { ...MAIN_NOTEBOOK_THEME_DEFAULTS };
     notepads = [makeProjectsNotepad(defaultStatuses)];
-    await sb.post('settings', { user_id: currentUser.id, statuses: defaultStatuses, theme: {}, notepads, updated_at: new Date().toISOString() });
+    await sb.post('settings', { user_id: currentUser.id, statuses: defaultStatuses, theme, notepads, updated_at: new Date().toISOString() });
   }
 }
 

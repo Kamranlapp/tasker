@@ -646,7 +646,12 @@ async function createNewUser() {
       { key: 'done', label: 'Done', icon: '✅' },
       { key: 'info', label: 'Info', icon: 'ℹ️' }
     ];
-    await sb.post('settings', { user_id: uid, statuses: defaultStatuses, theme: {}, notepads: [makeProjectsNotepad(defaultStatuses)] });
+    await sb.post('settings', {
+      user_id: uid,
+      statuses: defaultStatuses,
+      theme: { ...MAIN_NOTEBOOK_THEME_DEFAULTS },
+      notepads: [makeProjectsNotepad(defaultStatuses)]
+    });
     await sb.post('ui_state', { user_id: uid, collapsed_nodes: {}, collapsed_groups: {}, todo_collapsed: {} });
     await sb.post('trees', { user_id: uid, nodes: [], updated_at: new Date().toISOString() });
     newUserEmail = email;
